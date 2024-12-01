@@ -4,24 +4,35 @@ const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
 
 fn main() {
-    println!("Part 1   test          {} ", part_1(INPUT_TEST));
-    println!("         validation    {} ", part_1(INPUT));
-    println!("Part 2   test          {} ", part_2(INPUT_TEST));
-    println!("         validation    {} ", part_2(INPUT));
+    let (mut test_left, mut test_right) = left_and_right(INPUT_TEST);
+    let (mut validation_left, mut validation_right) = left_and_right(INPUT);
+    println!(
+        "Part 1   test          {} ",
+        part_1(&mut test_left, &mut validation_right)
+    );
+    println!(
+        "         validation    {} ",
+        part_1(&mut validation_left, &mut validation_right)
+    );
+    println!(
+        "Part 2   test          {} ",
+        part_2(&mut test_left, &mut test_right)
+    );
+    println!(
+        "         validation    {} ",
+        part_2(&mut validation_left, &mut validation_right)
+    );
 }
 
-fn part_1(input: &str) -> u32 {
-    let (mut left_list, mut right_list) = left_and_right(&input);
-    left_list.sort();
-    right_list.sort();
-
-    zip(left_list, right_list).fold(0, |acc, (left, right)| acc + left.abs_diff(right))
+fn part_1(left: &mut [u32], right: &mut [u32]) -> u32 {
+    left.sort();
+    right.sort();
+    zip(left, right).fold(0, |acc, (left, right)| acc + left.abs_diff(*right))
 }
 
-fn part_2(input: &str) -> u32 {
-    let (left_list, right_list): (Vec<u32>, Vec<u32>) = left_and_right(&input);
-    left_list.iter().fold(0, |acc, left| {
-        acc + (left * right_list.iter().filter(|&right| left == right).count() as u32)
+fn part_2(left: &mut [u32], right: &mut [u32]) -> u32 {
+    left.iter().fold(0, |acc, left| {
+        acc + (left * right.iter().filter(|&right| left == right).count() as u32)
     })
 }
 
