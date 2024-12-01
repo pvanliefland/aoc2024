@@ -27,13 +27,15 @@ fn main() {
 fn part_1(left: &mut [u32], right: &mut [u32]) -> u32 {
     left.sort();
     right.sort();
-    zip(left, right).fold(0, |acc, (left, right)| acc + left.abs_diff(*right))
+    zip(left, right)
+        .map(|(left, right)| left.abs_diff(*right))
+        .sum()
 }
 
 fn part_2(left: &mut [u32], right: &mut [u32]) -> u32 {
-    left.iter().fold(0, |acc, left| {
-        acc + (left * right.iter().filter(|&right| left == right).count() as u32)
-    })
+    left.iter()
+        .map(|left| left * right.iter().filter(|&right| left == right).count() as u32)
+        .sum()
 }
 
 fn left_and_right(input: &str) -> (Vec<u32>, Vec<u32>) {
