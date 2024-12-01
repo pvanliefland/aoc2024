@@ -3,6 +3,8 @@ use std::iter::zip;
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
 
+type Input = (Vec<u32>, Vec<u32>);
+
 fn main() {
     let mut test_input = parse(INPUT_TEST);
     let mut input = parse(INPUT);
@@ -12,7 +14,7 @@ fn main() {
     println!("         validation    {} ", part_2(&mut input));
 }
 
-fn part_1(input: &mut (Vec<u32>, Vec<u32>)) -> u32 {
+fn part_1(input: &mut Input) -> u32 {
     input.0.sort();
     input.1.sort();
     zip(&input.0, &input.1)
@@ -20,7 +22,7 @@ fn part_1(input: &mut (Vec<u32>, Vec<u32>)) -> u32 {
         .sum()
 }
 
-fn part_2(input: &mut (Vec<u32>, Vec<u32>)) -> u32 {
+fn part_2(input: &mut Input) -> u32 {
     input
         .0
         .iter()
@@ -28,7 +30,7 @@ fn part_2(input: &mut (Vec<u32>, Vec<u32>)) -> u32 {
         .sum()
 }
 
-fn parse(input: &str) -> (Vec<u32>, Vec<u32>) {
+fn parse(input: &str) -> Input {
     let (mut left_list, mut right_list) = (vec![], vec![]);
     input.trim().lines().for_each(|line| {
         let (left, right) = line.split_once("   ").unwrap();
