@@ -1,26 +1,42 @@
-const INPUT_TEST: &str = include_str!("../input_test.txt");
+const INPUT_TEST_1: &str = include_str!("../input_test_1.txt");
+const INPUT_TEST_2: &str = include_str!("../input_test_2.txt");
 const INPUT: &str = include_str!("../input.txt");
 
 type Input = Vec<String>;
 
 fn main() {
-    let test_input = parse(INPUT_TEST);
+    let test_input_1 = parse(INPUT_TEST_1);
+    let test_input_2 = parse(INPUT_TEST_2);
     let input = parse(INPUT);
-    println!("Part 1   test          {} ", part_1(test_input));
+    println!("Part 1   test          {} ", part_1(test_input_1));
     println!("         validation    {} ", part_1(input));
-    // println!("Part 2   test          {} ", part_2(test_input));
+    println!("Part 2   test          {} ", part_2(test_input_2));
     // println!("         validation    {} ", part_2(input));
 }
 
+enum State {
+    Unknown,
+    DoOrDont(char),
+    Do(char),
+    Dont(char),
+    Mul(Option<char>, String, String),
+}
+
 fn part_1(input: Input) -> u32 {
-    let foo = input
+    process(input, false)
+}
+
+fn part_2(input: Input) -> u32 {
+    process(input, true)
+}
+
+fn process(input: Input, dos_and_donts: bool) -> u32 {
+    input
         .iter()
         .map(|line| {
             let mut valid = 0u32;
             let mut char_iterator = line.chars();
-            let mut expected_char = Some('m');
-            let mut left: Option<String> = None;
-            let mut right: Option<String> = None;
+            let mut state = State::Unknown;
 
             loop {
                 let next = match char_iterator.next() {
@@ -30,15 +46,21 @@ fn part_1(input: Input) -> u32 {
                     }
                 };
 
-                match (expected_char.as_mut(), next, &left, &right) {
-                    (Some('m'), 'm', _, _) => {
-                        expected_char.replace('u');
+                match (state, next) {
+                    (State::Unknown, 'm') => {
+                        state = State::Mul(Some('u'), "".to_string(), "".to_string());
                     }
-                    (Some('u'), 'u', _, _) => {
-                        expected_char.replace('l');
+                    (State::Unknown, 'd') => {
+                        state = State::DoOrDont('o');
                     }
-                    (Some('l'), 'l', _, _) => {
-                        expected_char.replace('(');
+                    (State::Mul(Some('u'), left, right), 'u') => {
+                        state = State::Mul(Some('l'), left, right);
+                    }
+                    (State::Mul(Some('l'), left, right), 'l') => {
+                        state = State::Mul(Some('('), left, right);
+                    }
+                    (State::Mul(Some('('), left, right), '(') => {
+                        state = State::Mul(None, left, right);
                     }
                     (Some('('), '(', _, _) => {
                         expected_char = None;
@@ -72,13 +94,8 @@ fn part_1(input: Input) -> u32 {
             }
             valid
         })
-        .sum();
-    foo
+        .sum()
 }
-
-// fn part_2(input: Input) -> u32 {
-//     input.trim().parse::<u32>().unwrap()
-// }
 
 fn parse(input: &str) -> Input {
     input.trim().lines().map(String::from).collect()
