@@ -12,54 +12,52 @@ fn main() {
     println!("         validation    {} ", part_2(&input));
 }
 
-fn part_1(input: &Input) -> u32 {
-    let mut total = 0;
-    for (y, row) in input.iter().enumerate() {
-        for (x, _) in row.iter().enumerate() {
-            for [dx, dy] in [[1, 0], [1, -1], [0, -1], [-1, -1]] {
-                if check_grid(input, (x as i32, y as i32), (dx, dy), &["XMAS", "SAMX"]) {
-                    total += 1;
-                }
-            }
-        }
-    }
-    total
+fn part_1(input: &Input) -> usize {
+    input
+        .iter()
+        .enumerate()
+        .flat_map(|(y, row)| {
+            row.iter()
+                .enumerate()
+                .map(move |(x, c)| (x as i32, y as i32, c))
+        })
+        .map(|(x, y, _)| {
+            [[1, 0], [1, -1], [0, -1], [-1, -1]]
+                .iter()
+                .filter(move |[dx, dy]| check(input, (x, y), (*dx, *dy), &["XMAS", "SAMX"]))
+                .count()
+        })
+        .sum()
 }
 
-fn part_2(input: &Input) -> u32 {
-    let mut total = 0;
-    for (y, row) in input.iter().enumerate() {
-        for (x, &char) in row.iter().enumerate() {
-            if char == 'A'
-                && check_grid(
-                    input,
-                    (x as i32 - 1, y as i32 + 1),
-                    (1, -1),
-                    &["MAS", "SAM"],
-                )
-                && check_grid(input, (x as i32 - 1, y as i32 - 1), (1, 1), &["MAS", "SAM"])
-            {
-                total += 1;
-            }
-        }
-    }
-    total
+fn part_2(input: &Input) -> usize {
+    input
+        .iter()
+        .enumerate()
+        .flat_map(|(y, row)| {
+            row.iter()
+                .enumerate()
+                .map(move |(x, c)| (x as i32, y as i32, c))
+        })
+        .filter(|&(x, y, c)| {
+            c == &'A'
+                && check(input, (x - 1, y + 1), (1, -1), &["MAS", "SAM"])
+                && check(input, (x - 1, y - 1), (1, 1), &["MAS", "SAM"])
+        })
+        .count()
 }
 
-fn check_grid(input: &Input, xy: (i32, i32), dxdy: (i32, i32), patterns: &[&str]) -> bool {
+fn check(input: &Input, xy: (i32, i32), dxdy: (i32, i32), patterns: &[&str]) -> bool {
     patterns.iter().any(|pattern| {
-        pattern
-            .chars()
-            .enumerate()
-            .all(|(position, expected_char)| {
-                input
-                    .get((xy.1 + (dxdy.1 * position as i32)) as usize)
-                    .and_then(|row| {
-                        row.get((xy.0 + (dxdy.0 * position as i32)) as usize)
-                            .filter(|&char| *char == expected_char)
-                    })
-                    .is_some()
-            })
+        pattern.chars().enumerate().all(|(index, expected)| {
+            input
+                .get((xy.1 + (dxdy.1 * index as i32)) as usize)
+                .and_then(|row| {
+                    row.get((xy.0 + (dxdy.0 * index as i32)) as usize)
+                        .filter(|&actual| actual == &expected)
+                })
+                .is_some()
+        })
     })
 }
 
