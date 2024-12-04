@@ -9,17 +9,17 @@ fn main() {
     let test_input_2 = parse(INPUT_TEST_2);
     let input = parse(INPUT);
     println!("Part 1   test          {} ", part_1(test_input_1));
-    println!("         validation    {} ", part_1(input));
-    println!("Part 2   test          {} ", part_2(test_input_2));
+    // println!("         validation    {} ", part_1(input));
+    // println!("Part 2   test          {} ", part_2(test_input_2));
     // println!("         validation    {} ", part_2(input));
 }
 
 enum State {
     Unknown,
     DoOrDont(char),
-    Do(char),
+    Do,
     Dont(char),
-    Mul(Option<char>, String, String),
+    Mul(Option<String>, Option<String>, bool),
 }
 
 fn part_1(input: Input) -> u32 {
@@ -35,63 +35,107 @@ fn process(input: Input, dos_and_donts: bool) -> u32 {
         .iter()
         .map(|line| {
             let mut valid = 0u32;
-            let mut char_iterator = line.chars();
             let mut state = State::Unknown;
 
-            loop {
-                let next = match char_iterator.next() {
-                    Some(char) => char,
-                    None => {
-                        break;
-                    }
-                };
+            let mut cursor = 0;
 
-                match (state, next) {
-                    (State::Unknown, 'm') => {
-                        state = State::Mul(Some('u'), "".to_string(), "".to_string());
+            loop {
+                // smallest valid thing is mul(1,1) so 8 chars
+                if cursor > line.len() - 8 {
+                    break;
+                }
+
+                match state {
+                    State::Unknown | State::Do => {
+                        if &line[cursor..cursor + 4] == "mul(" {
+                            state = State::Mul(None, None, false);
+                            cursor += 4;
+                        } else {
+                            cursor += 1;
+                        }
                     }
-                    (State::Unknown, 'd') => {
-                        state = State::DoOrDont('o');
+                    State::DoOrDont(_) => todo!(),
+                    State::Dont(_) => todo!(),
+                    State::Mul(None, None, false) => {
+                        if line[cursor..cursor + 1]
+                            .chars()
+                            .next()
+                            .unwrap()
+                            .is_ascii_digit()
+                        {
+                            state =
+                                State::Mul(Some(line[cursor..cursor + 1].to_string()), None, false);
+                            cursor += 1;
+                        } else {
+                            state = State::Unknown;
+                            cursor += 1;
+                        }
                     }
-                    (State::Mul(Some('u'), left, right), 'u') => {
-                        state = State::Mul(Some('l'), left, right);
+                    State::Mul(Some(left), None, false) => {
+                        if line[cursor..cursor + 1]
+                            .chars()
+                            .next()
+                            .unwrap()
+                            .is_ascii_digit()
+                        {
+                            state = State::Mul(Some(left + &line[cursor..cursor + 1]), None, false);
+                            cursor += 1;
+                        } else if &line[cursor..cursor + 1] == "," {
+                            state = State::Mul(Some(left), None, true);
+                            cursor += 1;
+                        } else {
+                            state = State::Unknown;
+                            cursor += 1;
+                        }
                     }
-                    (State::Mul(Some('l'), left, right), 'l') => {
-                        state = State::Mul(Some('('), left, right);
+                    State::Mul(Some(left), None, true) => {
+                        if line[cursor..cursor + 1]
+                            .chars()
+                            .next()
+                            .unwrap()
+                            .is_ascii_digit()
+                        {
+                            state = State::Mul(
+                                Some(left),
+                                Some(line[cursor..cursor + 1].to_string()),
+                                true,
+                            );
+                            cursor += 1;
+                        } else {
+                            state = State::Unknown;
+                            cursor += 1;
+                        }
                     }
-                    (State::Mul(Some('('), left, right), '(') => {
-                        state = State::Mul(None, left, right);
-                    }
-                    (Some('('), '(', _, _) => {
-                        expected_char = None;
-                        left = Some("".to_string());
-                    }
-                    (None, next, Some(prev_left), None) if next.is_digit(10) => {
-                        left.replace(prev_left.clone() + &next.to_string());
-                    }
-                    (_, next, Some(prev_left), None) if prev_left != "" && next == ',' => {
-                        right = Some("".to_string());
-                    }
-                    (_, next, Some(_), Some(prev_right)) if next.is_digit(10) => {
-                        right.replace(prev_right.clone() + &next.to_string());
-                    }
-                    (_, next, Some(prev_left), Some(prev_right))
-                        if prev_right != "" && next == ')' =>
-                    {
-                        valid +=
-                            prev_left.parse::<u32>().unwrap() * prev_right.parse::<u32>().unwrap();
-                        left = None;
-                        right = None;
-                        expected_char = Some('m');
+                    State::Mul(Some(left), Some(right), true) => {
+                        if line[cursor..cursor + 1]
+                            .chars()
+                            .next()
+                            .unwrap()
+                            .is_ascii_digit()
+                        {
+                            state = State::Mul(
+                                Some(left),
+                                Some(right + &line[cursor..cursor + 1]),
+                                true,
+                            );
+                            cursor += 1;
+                        } else if &line[cursor..cursor + 1] == ")" {
+                            dbg!("r");
+                            valid += left.parse::<u32>().unwrap() * right.parse::<u32>().unwrap();
+                            state = State::Unknown;
+                            cursor += 1;
+                        } else {
+                            state = State::Unknown;
+                            cursor += 1;
+                        }
                     }
                     _ => {
-                        left = None;
-                        right = None;
-                        expected_char = Some('m');
-                        continue;
+                        state = State::Unknown;
+                        cursor += 1;
                     }
                 }
             }
+
             valid
         })
         .sum()
