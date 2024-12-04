@@ -16,29 +16,8 @@ fn part_1(input: &Input) -> u32 {
     let mut total = 0;
     for (y, row) in input.iter().enumerate() {
         for (x, _) in row.iter().enumerate() {
-            for [dx, dy] in [
-                [1, 0],
-                [1, -1],
-                [0, -1],
-                [-1, -1],
-                [-1, 0],
-                [-1, 1],
-                [0, 1],
-                [1, 1],
-            ] {
-                if ['X', 'M', 'A', 'S']
-                    .iter()
-                    .enumerate()
-                    .all(|(position, expected_char)| {
-                        input
-                            .get((y as i32 + (dy * position as i32)) as usize)
-                            .and_then(|row| {
-                                row.get((x as i32 + (dx * position as i32)) as usize)
-                                    .filter(|&char| char == expected_char)
-                            })
-                            .is_some()
-                    })
-                {
+            for [dx, dy] in [[1, 0], [1, -1], [0, -1], [-1, -1]] {
+                if check_grid(input, (x as i32, y as i32), (dx, dy), &["XMAS", "SAMX"]) {
                     total += 1;
                 }
             }
@@ -50,49 +29,38 @@ fn part_1(input: &Input) -> u32 {
 fn part_2(input: &Input) -> u32 {
     let mut total = 0;
     for (y, row) in input.iter().enumerate() {
-        for (x, char) in row.iter().enumerate() {
-            let diagonal_1 = [[(-1, 1, 'S'), (1, -1, 'M')], [(-1, 1, 'M'), (1, -1, 'S')]]
-                .iter()
-                .any(|[top_left, bottom_right]| {
-                    input
-                        .get((y as i32 + top_left.1) as usize)
-                        .and_then(|row| {
-                            row.get((x as i32 + top_left.0) as usize)
-                                .filter(|&char| *char == top_left.2)
-                        })
-                        .is_some()
-                        && input
-                            .get((y as i32 + bottom_right.1) as usize)
-                            .and_then(|row| {
-                                row.get((x as i32 + bottom_right.0) as usize)
-                                    .filter(|&char| *char == bottom_right.2)
-                            })
-                            .is_some()
-                });
-            let diagonal_2 = [[(-1, -1, 'S'), (1, 1, 'M')], [(-1, -1, 'M'), (1, 1, 'S')]]
-                .iter()
-                .any(|[bottom_left, top_right]| {
-                    input
-                        .get((y as i32 + bottom_left.1) as usize)
-                        .and_then(|row| {
-                            row.get((x as i32 + bottom_left.0) as usize)
-                                .filter(|&char| *char == bottom_left.2)
-                        })
-                        .is_some()
-                        && input
-                            .get((y as i32 + top_right.1) as usize)
-                            .and_then(|row| {
-                                row.get((x as i32 + top_right.0) as usize)
-                                    .filter(|&char| *char == top_right.2)
-                            })
-                            .is_some()
-                });
-            if *char == 'A' && diagonal_1 && diagonal_2 {
+        for (x, &char) in row.iter().enumerate() {
+            if char == 'A'
+                && check_grid(
+                    input,
+                    (x as i32 - 1, y as i32 + 1),
+                    (1, -1),
+                    &["MAS", "SAM"],
+                )
+                && check_grid(input, (x as i32 - 1, y as i32 - 1), (1, 1), &["MAS", "SAM"])
+            {
                 total += 1;
             }
         }
     }
     total
+}
+
+fn check_grid(input: &Input, xy: (i32, i32), dxdy: (i32, i32), patterns: &[&str]) -> bool {
+    patterns.iter().any(|pattern| {
+        pattern
+            .chars()
+            .enumerate()
+            .all(|(position, expected_char)| {
+                input
+                    .get((xy.1 + (dxdy.1 * position as i32)) as usize)
+                    .and_then(|row| {
+                        row.get((xy.0 + (dxdy.0 * position as i32)) as usize)
+                            .filter(|&char| *char == expected_char)
+                    })
+                    .is_some()
+            })
+    })
 }
 
 fn parse(input: &str) -> Input {
