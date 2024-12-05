@@ -1,26 +1,53 @@
 const INPUT_TEST: &str = include_str!("../input_test.txt");
-// const INPUT: &str = include_str!("../input.txt");
+const INPUT: &str = include_str!("../input.txt");
 
-type Input = u32;
+type Input = [Vec<Vec<u32>>; 2];
 
 fn main() {
     let test_input = parse(INPUT_TEST);
-    // let input = parse(INPUT);
+    let input = parse(INPUT);
     println!("Part 1   test          {} ", part_1(&test_input));
-    // println!("         validation    {} ", part_1(&input));
-    // println!("Part 2   test          {} ", part_2(&test_input));
+    println!("         validation    {} ", part_1(&input));
+    println!("Part 2   test          {} ", part_2(&test_input));
     // println!("         validation    {} ", part_2(&input));
 }
 
 fn part_1(input: &Input) -> u32 {
-    dbg!(input);
+    input[1]
+        .iter()
+        .filter_map(|update| {
+            if update.windows(2).all(|p1p2| {
+                input[0]
+                    .iter()
+                    .any(|rule| rule[0] == p1p2[0] && rule[1] == p1p2[1])
+            }) {
+                Some(update[update.len() / 2])
+            } else {
+                None
+            }
+        })
+        .sum()
+}
+
+fn part_2(input: &Input) -> u32 {
     42
 }
 
-// fn part_2(input: Input) -> u32 {
-//     input.trim().parse::<u32>().unwrap()
-// }
-
 fn parse(input: &str) -> Input {
-    input.trim().parse::<u32>().unwrap()
+    input
+        .trim()
+        .split("\n\n")
+        .map(|block| {
+            block
+                .lines()
+                .map(|line| {
+                    line.split(&[',', '|'])
+                        .map(|item| item.parse().unwrap())
+                        .collect()
+                })
+                .collect()
+        })
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap()
 }

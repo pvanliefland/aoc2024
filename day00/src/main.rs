@@ -17,7 +17,7 @@ fn part_1(input: &Input) -> u32 {
     42
 }
 
-// fn part_2(input: Input) -> u32 {
+// fn part_2(input: &Input) -> u32 {
 //     input.trim().parse::<u32>().unwrap()
 // }
 
