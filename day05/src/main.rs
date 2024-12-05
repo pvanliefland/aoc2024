@@ -1,9 +1,9 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, collections::HashSet, hash::RandomState};
 
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
 
-type Input = Vec<Vec<Vec<u32>>>;
+type Input = (HashSet<(u32, u32), RandomState>, Vec<Vec<u32>>);
 
 fn main() {
     let test_input = parse(INPUT_TEST);
@@ -19,17 +19,16 @@ fn main() {
 fn part_1_2(input: &Input) -> (u32, u32) {
     let mut p1 = 0;
     let mut p2 = 0;
-    input[1].iter().for_each(|update| {
-        if update.windows(2).all(|p1p2| {
-            input[0]
-                .iter()
-                .any(|rule| rule[0] == p1p2[0] && rule[1] == p1p2[1])
-        }) {
+    input.1.iter().for_each(|update| {
+        if update
+            .windows(2)
+            .all(|p1p2| input.0.contains(&(p1p2[0], p1p2[1])))
+        {
             p1 += update[update.len() / 2];
         } else {
             let mut reordered = update.clone();
-            reordered.sort_by(|a, b| {
-                if input[0].iter().any(|rule| &rule[0] == a && &rule[1] == b) {
+            reordered.sort_by(|&a, &b| {
+                if input.0.contains(&(a, b)) {
                     Ordering::Greater
                 } else {
                     Ordering::Less
@@ -42,18 +41,20 @@ fn part_1_2(input: &Input) -> (u32, u32) {
 }
 
 fn parse(input: &str) -> Input {
-    input
-        .trim()
-        .split("\n\n")
-        .map(|block| {
-            block
-                .lines()
-                .map(|line| {
-                    line.split(&[',', '|'])
-                        .map(|item| item.parse().unwrap())
-                        .collect()
-                })
-                .collect()
-        })
-        .collect::<Vec<_>>()
+    let (rules, updates) = input.trim().split_once("\n\n").unwrap();
+    let rules = HashSet::<_>::from_iter(rules.lines().map(|rule| {
+        let (p1, p2) = rule.split_once('|').unwrap();
+        (p1.parse().unwrap(), p2.parse().unwrap())
+    }));
+    (
+        rules,
+        updates
+            .lines()
+            .map(|line| {
+                line.split(&[',', '|'])
+                    .map(|item| item.parse().unwrap())
+                    .collect()
+            })
+            .collect(),
+    )
 }
