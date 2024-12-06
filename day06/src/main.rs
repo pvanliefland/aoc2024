@@ -1,25 +1,23 @@
 use core::panic;
-use std::{
-    collections::{HashMap, HashSet},
-    hash::RandomState,
-};
+use std::collections::{HashMap, HashSet};
 
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
 
-type Input = HashMap<(isize, isize), char, RandomState>;
+type Input = HashMap<(isize, isize), char>;
 
 fn main() {
     let test_input = parse(INPUT_TEST);
     let input = parse(INPUT);
-    println!("Part 1   test          {} ", part_1(&test_input));
-    println!("         validation    {} ", part_1(&input));
-    println!("Part 2   test          {} ", part_2(&test_input));
-    println!("         validation    {} ", part_2(&input));
+    let test_p1 = part_1(&test_input);
+    let p1 = part_1(&input);
+    println!("Part 1   test          {} ", test_p1.len());
+    println!("         validation    {} ", p1.len());
+    println!("Part 2   test          {} ", part_2(&test_input, test_p1));
+    println!("         validation    {} ", part_2(&input, p1));
 }
 
-fn part_1(input: &Input) -> usize {
-    let mut input = input.clone();
+fn part_1(input: &Input) -> HashSet<(isize, isize)> {
     let mut current = input
         .iter()
         .find(|(_, c)| *c == &'^')
@@ -46,9 +44,8 @@ fn part_1(input: &Input) -> usize {
                 };
                 current = (current.0, next_dir);
             }
-            Some('.') => {
+            Some('.' | '^' | '>' | 'v' | '<') => {
                 visited.insert(current.0);
-                *input.get_mut(&current.0).unwrap() = '.';
                 current = (next, current.1);
             }
             Some(_) => panic!("Oops"),
@@ -58,21 +55,18 @@ fn part_1(input: &Input) -> usize {
             }
         }
     }
-    visited.len()
+    visited
 }
 
-fn part_2(input: &Input) -> usize {
-    let candidates = input.iter().filter(|(_, c)| c == &&'.').collect::<Vec<_>>();
+fn part_2(input: &Input, part_1: HashSet<(isize, isize)>) -> usize {
     let mut loops = 0;
 
-    for candidate in candidates {
+    for candidate in part_1 {
         let mut current = input
             .iter()
             .find(|(_, c)| *c == &'^')
             .map(|(p, c)| (*p, *c))
             .unwrap();
-        let mut new_input = input.clone();
-        new_input.insert(*candidate.0, '#');
         let mut visited = HashSet::new();
 
         loop {
@@ -84,8 +78,8 @@ fn part_2(input: &Input) -> usize {
                 _ => panic!("Oops"),
             };
             let next = (current.0 .0 + dx, current.0 .1 + dy);
-            match new_input.get(&next) {
-                Some('#') => {
+            match (next == candidate, input.get(&next)) {
+                (true, _) | (false, Some('#')) => {
                     let next_dir = match current.1 {
                         '^' => '>',
                         '>' => 'v',
@@ -95,17 +89,16 @@ fn part_2(input: &Input) -> usize {
                     };
                     current = (current.0, next_dir);
                 }
-                Some('.') => {
+                (false, Some('.' | '^' | '>' | 'v' | '<')) => {
                     if visited.contains(&(current.0, current.1)) {
                         loops += 1;
                         break;
                     }
                     visited.insert((current.0, current.1));
-                    *new_input.get_mut(&current.0).unwrap() = '.';
                     current = (next, current.1);
                 }
-                Some(_) => panic!("Oops"),
-                None => {
+                (false, Some(_)) => panic!("Oops"),
+                (false, None) => {
                     visited.insert((current.0, current.1));
                     break;
                 }
