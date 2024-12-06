@@ -71,7 +71,7 @@ fn process(input: &Input, dos_and_donts: bool) -> u32 {
                 State::Mul(Some(left), None, false) => {
                     if let Some(digit) = get_digit(line, cursor) {
                         state = State::Mul(Some(left + &digit.to_string()), None, false);
-                    } else if &line[cursor..cursor + 1] == "," {
+                    } else if &line[cursor..=cursor] == "," {
                         state = State::Mul(Some(left), None, true);
                     } else {
                         state = State::Do;
@@ -89,7 +89,7 @@ fn process(input: &Input, dos_and_donts: bool) -> u32 {
                 State::Mul(Some(left), Some(right), true) => {
                     if let Some(digit) = get_digit(line, cursor) {
                         state = State::Mul(Some(left), Some(right + &digit.to_string()), true);
-                    } else if &line[cursor..cursor + 1] == ")" {
+                    } else if &line[cursor..=cursor] == ")" {
                         valid += left.parse::<u32>().unwrap() * right.parse::<u32>().unwrap();
                         state = State::Do;
                     } else {
@@ -97,7 +97,7 @@ fn process(input: &Input, dos_and_donts: bool) -> u32 {
                     }
                     cursor += 1;
                 }
-                _ => {
+                State::Mul(..) => {
                     state = State::Do;
                     cursor += 1;
                 }
@@ -108,9 +108,9 @@ fn process(input: &Input, dos_and_donts: bool) -> u32 {
 }
 
 fn get_digit(line: &str, position: usize) -> Option<char> {
-    line.get(position..position + 1)
+    line.get(position..=position)
         .map(|slice| slice.chars().next().unwrap())
-        .filter(|char| char.is_ascii_digit())
+        .filter(char::is_ascii_digit)
 }
 
 fn parse(input: &str) -> Input {

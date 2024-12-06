@@ -15,8 +15,8 @@ fn main() {
 }
 
 fn part_1(input: &mut Input) -> u32 {
-    input.0.sort();
-    input.1.sort();
+    input.0.sort_unstable();
+    input.1.sort_unstable();
     zip(&input.0, &input.1)
         .map(|(left, right)| left.abs_diff(*right))
         .sum()
@@ -26,7 +26,9 @@ fn part_2(input: &mut Input) -> u32 {
     input
         .0
         .iter()
-        .map(|left| left * input.1.iter().filter(|&right| left == right).count() as u32)
+        .map(|left| {
+            left * u32::try_from(input.1.iter().filter(|&right| left == right).count()).unwrap()
+        })
         .sum()
 }
 

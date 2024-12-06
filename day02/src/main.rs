@@ -22,7 +22,7 @@ fn part_2(input: &Input) -> usize {
 
 fn valid_reports(input: &Input, dampener: bool) -> usize {
     input
-        .into_iter()
+        .iter()
         .filter(|&report| {
             validate_report(report)
                 || dampener
@@ -49,7 +49,7 @@ fn parse(input: &str) -> Input {
         .trim()
         .lines()
         .map(|line| {
-            line.split(" ")
+            line.split(' ')
                 .map(|number| number.parse::<u32>().unwrap())
                 .collect()
         })
