@@ -10,15 +10,16 @@ const INPUT: &str = include_str!("../input.txt");
 type Input = HashMap<(isize, isize), char, RandomState>;
 
 fn main() {
-    let mut test_input = parse(INPUT_TEST);
-    let mut input = parse(INPUT);
-    println!("Part 1   test          {} ", part_1(&mut test_input));
-    println!("         validation    {} ", part_1(&mut input));
-    // println!("Part 2   test          {} ", part_2(&test_input));
-    // println!("         validation    {} ", part_2(&input));
+    let test_input = parse(INPUT_TEST);
+    let input = parse(INPUT);
+    println!("Part 1   test          {} ", part_1(&test_input));
+    println!("         validation    {} ", part_1(&input));
+    println!("Part 2   test          {} ", part_2(&test_input));
+    println!("         validation    {} ", part_2(&input));
 }
 
-fn part_1(input: &mut Input) -> usize {
+fn part_1(input: &Input) -> usize {
+    let mut input = input.clone();
     let mut current = input
         .iter()
         .find(|(_, c)| *c == &'^')
@@ -60,9 +61,60 @@ fn part_1(input: &mut Input) -> usize {
     visited.len()
 }
 
-// fn part_2(input: &Input) -> u32 {
-//     input.trim().parse::<u32>().unwrap()
-// }
+fn part_2(input: &Input) -> usize {
+    let candidates = input.iter().filter(|(_, c)| c == &&'.').collect::<Vec<_>>();
+    let mut loops = 0;
+
+    for candidate in candidates {
+        let mut current = input
+            .iter()
+            .find(|(_, c)| *c == &'^')
+            .map(|(p, c)| (*p, *c))
+            .unwrap();
+        let mut new_input = input.clone();
+        new_input.insert(*candidate.0, '#');
+        let mut visited = HashSet::new();
+
+        loop {
+            let (dx, dy) = match current.1 {
+                '^' => (0, -1),
+                '>' => (1, 0),
+                'v' => (0, 1),
+                '<' => (-1, 0),
+                _ => panic!("Oops"),
+            };
+            let next = (current.0 .0 + dx, current.0 .1 + dy);
+            match new_input.get(&next) {
+                Some('#') => {
+                    let next_dir = match current.1 {
+                        '^' => '>',
+                        '>' => 'v',
+                        'v' => '<',
+                        '<' => '^',
+                        _ => panic!("Oops"),
+                    };
+                    current = (current.0, next_dir);
+                }
+                Some('.') => {
+                    if visited.contains(&(current.0, current.1)) {
+                        loops += 1;
+                        break;
+                    }
+                    visited.insert((current.0, current.1));
+                    *new_input.get_mut(&current.0).unwrap() = '.';
+                    current = (next, current.1);
+                }
+                Some(_) => panic!("Oops"),
+                None => {
+                    visited.insert((current.0, current.1));
+                    break;
+                }
+            }
+        }
+    }
+
+    loops
+}
 
 fn parse(input: &str) -> Input {
     input
