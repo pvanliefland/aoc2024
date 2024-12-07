@@ -45,8 +45,6 @@ fn part_1(input: &Input, concat: bool) -> usize {
         .sum()
 }
 
-fn calibration_result() {}
-
 fn combinations(size: usize, concat: bool) -> Vec<Vec<char>> {
     let pools = if concat {
         vec![vec!['+', '*', '|']; size]
