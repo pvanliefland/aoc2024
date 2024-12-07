@@ -9,53 +9,72 @@ type Input = HashMap<(isize, isize), char>;
 fn main() {
     let test_input = parse(INPUT_TEST);
     let input = parse(INPUT);
-    let test_p1 = part_1(&test_input);
-    let p1 = part_1(&input);
-    println!("Part 1   test          {} ", test_p1.len());
-    println!("         validation    {} ", p1.len());
-    println!("Part 2   test          {} ", part_2(&test_input, test_p1));
-    println!("         validation    {} ", part_2(&input, p1));
+    let (test_p1, test_targets) = part_1(&test_input);
+    let (p1, targets) = part_1(&input);
+    println!("Part 1   test     {test_p1} ");
+    println!("         actual   {p1} ");
+    println!("Part 2   test     {} ", part_2(&test_input, test_targets));
+    println!("         actual   {} ", part_2(&input, targets));
 }
 
-fn part_1(input: &Input) -> HashSet<(isize, isize)> {
+fn part_1(input: &Input) -> (usize, HashSet<(isize, isize)>) {
     let mut current = input
         .iter()
         .find(|(_, c)| *c == &'^')
         .map(|(p, c)| (*p, *c))
         .unwrap();
     let mut visited = HashSet::new();
+    let mut targets = HashSet::new();
     loop {
-        let (dx, dy) = match current.1 {
-            '^' => (0, -1),
-            '>' => (1, 0),
-            'v' => (0, 1),
-            '<' => (-1, 0),
-            _ => panic!("Oops"),
-        };
-        let next = (current.0 .0 + dx, current.0 .1 + dy);
-        match input.get(&next) {
-            Some('#') => {
-                let next_dir = match current.1 {
-                    '^' => '>',
-                    '>' => 'v',
-                    'v' => '<',
-                    '<' => '^',
-                    _ => panic!("Oops"),
-                };
+        match step(input, current) {
+            Outcome::Move(next_pos) => {
+                visited.insert(current.0);
+                targets.insert(current.0);
+                current = (next_pos, current.1);
+            }
+            Outcome::Turn(next_dir) => {
                 current = (current.0, next_dir);
             }
-            Some('.' | '^' | '>' | 'v' | '<') => {
+            Outcome::GetOut => {
                 visited.insert(current.0);
-                current = (next, current.1);
-            }
-            Some(_) => panic!("Oops"),
-            None => {
-                visited.insert(current.0);
+                targets.insert(current.0);
                 break;
             }
         }
     }
-    visited
+    (visited.len(), targets)
+}
+
+enum Outcome {
+    Turn(char),
+    Move((isize, isize)),
+    GetOut,
+}
+
+fn step(map: &Input, current: ((isize, isize), char)) -> Outcome {
+    let (dx, dy) = match current.1 {
+        '^' => (0, -1),
+        '>' => (1, 0),
+        'v' => (0, 1),
+        '<' => (-1, 0),
+        _ => panic!("Oops"),
+    };
+    let next = (current.0 .0 + dx, current.0 .1 + dy);
+    match map.get(&next) {
+        Some('#') => {
+            let next_dir = match current.1 {
+                '^' => '>',
+                '>' => 'v',
+                'v' => '<',
+                '<' => '^',
+                _ => panic!("Oops"),
+            };
+            Outcome::Turn(next_dir)
+        }
+        Some('.' | '^' | '>' | 'v' | '<') => Outcome::Move(next),
+        Some(_) => panic!("Oops"),
+        None => Outcome::GetOut,
+    }
 }
 
 fn part_2(input: &Input, part_1: HashSet<(isize, isize)>) -> usize {
@@ -117,7 +136,12 @@ fn parse(input: &str) -> Input {
         .flat_map(|(y, row)| {
             row.chars()
                 .enumerate()
-                .map(|(x, c)| ((x as isize, y as isize), c))
+                .map(|(x, c)| {
+                    (
+                        (isize::try_from(x).unwrap(), isize::try_from(y).unwrap()),
+                        c,
+                    )
+                })
                 .collect::<Vec<_>>()
         })
         .collect()
