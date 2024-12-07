@@ -81,7 +81,7 @@ fn part_2(input: &Input, part_1: HashSet<(isize, isize)>) -> usize {
     let mut loops = 0;
 
     for candidate in part_1 {
-        let mut current = input
+        let (mut current_pos, mut current_dir) = input
             .iter()
             .find(|(_, c)| *c == &'^')
             .map(|(p, c)| (*p, *c))
@@ -89,36 +89,36 @@ fn part_2(input: &Input, part_1: HashSet<(isize, isize)>) -> usize {
         let mut visited = HashSet::new();
 
         loop {
-            let (dx, dy) = match current.1 {
+            let (dx, dy) = match current_dir {
                 '^' => (0, -1),
                 '>' => (1, 0),
                 'v' => (0, 1),
                 '<' => (-1, 0),
                 _ => panic!("Oops"),
             };
-            let next = (current.0 .0 + dx, current.0 .1 + dy);
-            match (next == candidate, input.get(&next)) {
+            let next_pos = (current_pos.0 + dx, current_pos.1 + dy);
+            match (next_pos == candidate, input.get(&next_pos)) {
                 (true, _) | (false, Some('#')) => {
-                    let next_dir = match current.1 {
+                    let next_dir = match current_dir {
                         '^' => '>',
                         '>' => 'v',
                         'v' => '<',
                         '<' => '^',
                         _ => panic!("Oops"),
                     };
-                    current = (current.0, next_dir);
+                    current_dir = next_dir;
                 }
                 (false, Some('.' | '^' | '>' | 'v' | '<')) => {
-                    if visited.contains(&(current.0, current.1)) {
+                    if visited.contains(&(current_pos, current_dir)) {
                         loops += 1;
                         break;
                     }
-                    visited.insert((current.0, current.1));
-                    current = (next, current.1);
+                    visited.insert((current_pos, current_dir));
+                    current_pos = next_pos;
                 }
                 (false, Some(_)) => panic!("Oops"),
                 (false, None) => {
-                    visited.insert((current.0, current.1));
+                    visited.insert((current_pos, current_dir));
                     break;
                 }
             }
