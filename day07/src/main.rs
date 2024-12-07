@@ -6,17 +6,17 @@ type Input = Vec<(usize, Vec<usize>)>;
 fn main() {
     let test_input = parse(INPUT_TEST);
     let input = parse(INPUT);
-    println!("Part 1   test          {} ", part_1(&test_input));
-    println!("         validation    {} ", part_1(&input));
-    // println!("Part 2   test          {} ", part_2(&test_input));
-    // println!("         validation    {} ", part_2(&input));
+    println!("Part 1   test          {} ", part_1(&test_input, false));
+    println!("         validation    {} ", part_1(&input, false));
+    println!("Part 2   test          {} ", part_1(&test_input, true));
+    println!("         validation    {} ", part_1(&input, true));
 }
 
-fn part_1(input: &Input) -> usize {
+fn part_1(input: &Input, concat: bool) -> usize {
     input
         .iter()
         .filter_map(|(left, right)| {
-            let combinations = combinations(right.len() - 1);
+            let combinations = combinations(right.len() - 1, concat);
             if combinations.iter().any(|combo| {
                 let mut result = right[0];
                 for (index, op) in combo.iter().enumerate() {
@@ -26,6 +26,11 @@ fn part_1(input: &Input) -> usize {
                         }
                         '*' => {
                             result *= right[index + 1];
+                        }
+                        '|' => {
+                            result = (result.to_string() + &right[index + 1].to_string())
+                                .parse()
+                                .unwrap();
                         }
                         _ => panic!("oops"),
                     }
@@ -40,14 +45,20 @@ fn part_1(input: &Input) -> usize {
         .sum()
 }
 
-fn combinations(size: usize) -> Vec<Vec<char>> {
-    let pools = vec![['+', '*']; size];
+fn calibration_result() {}
+
+fn combinations(size: usize, concat: bool) -> Vec<Vec<char>> {
+    let pools = if concat {
+        vec![vec!['+', '*', '|']; size]
+    } else {
+        vec![vec!['+', '*']; size]
+    };
     let mut result = vec![vec![]];
     for pool in pools {
         let mut combinations = vec![];
         for x in result {
-            for y in pool {
-                combinations.push([x.clone(), vec![y]].concat());
+            for y in &pool {
+                combinations.push([x.clone(), vec![*y]].concat());
             }
         }
         result = combinations;
