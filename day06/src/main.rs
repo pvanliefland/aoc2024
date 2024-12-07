@@ -4,32 +4,27 @@ use std::collections::{HashMap, HashSet};
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
 
-type Input = HashMap<(isize, isize), char>;
+type Position = (isize, isize);
+type Input = (HashMap<Position, char>, (Position, char));
 
 fn main() {
     let test_input = parse(INPUT_TEST);
     let input = parse(INPUT);
-    let (test_p1, test_targets) = part_1(&test_input);
-    let (p1, targets) = part_1(&input);
-    println!("Part 1   test     {test_p1} ");
-    println!("         actual   {p1} ");
-    println!("Part 2   test     {} ", part_2(&test_input, test_targets));
-    println!("         actual   {} ", part_2(&input, targets));
+    let test_visited = part_1(&test_input);
+    let visited = part_1(&input);
+    println!("Part 1   test     {}", test_visited.len());
+    println!("         actual   {}", visited.len());
+    println!("Part 2   test     {} ", part_2(&test_input, test_visited));
+    println!("         actual   {} ", part_2(&input, visited));
 }
 
-fn part_1(input: &Input) -> (usize, HashSet<(isize, isize)>) {
-    let (mut pos, mut dir) = input
-        .iter()
-        .find(|(_, c)| *c == &'^')
-        .map(|(p, c)| (*p, *c))
-        .unwrap();
+fn part_1(input: &Input) -> HashSet<Position> {
+    let (map, (mut pos, mut dir)) = input;
     let mut visited = HashSet::new();
-    let mut targets = HashSet::new();
     loop {
-        match step(input, pos, dir, None) {
+        match step(map, pos, dir, None) {
             Outcome::Move(next_pos) => {
                 visited.insert(pos);
-                targets.insert(pos);
                 pos = next_pos;
             }
             Outcome::Turn(next_dir) => {
@@ -37,32 +32,21 @@ fn part_1(input: &Input) -> (usize, HashSet<(isize, isize)>) {
             }
             Outcome::GetOut => {
                 visited.insert(pos);
-                targets.insert(pos);
                 break;
             }
         }
     }
-    (visited.len(), targets)
-}
-
-enum Outcome {
-    Turn(char),
-    Move((isize, isize)),
-    GetOut,
+    visited
 }
 
 fn part_2(input: &Input, part_1: HashSet<(isize, isize)>) -> usize {
-    let (init_pos, init_dir) = input
-        .iter()
-        .find(|(_, c)| *c == &'^')
-        .map(|(p, c)| (*p, *c))
-        .unwrap();
+    let (map, (start_pos, start_dir)) = input;
     let mut loops = 0;
     for candidate in part_1 {
         let mut visited = HashSet::new();
-        let (mut pos, mut dir) = (init_pos, init_dir);
+        let (mut pos, mut dir) = (*start_pos, *start_dir).to_owned();
         loop {
-            match step(input, pos, dir, Some(candidate)) {
+            match step(map, pos, dir, Some(candidate)) {
                 Outcome::Move(next_pos) => {
                     if visited.contains(&(pos, dir)) {
                         loops += 1;
@@ -81,11 +65,15 @@ fn part_2(input: &Input, part_1: HashSet<(isize, isize)>) -> usize {
             }
         }
     }
-
     loops
 }
 
-fn step(map: &Input, pos: (isize, isize), dir: char, obstacle: Option<(isize, isize)>) -> Outcome {
+fn step(
+    map: &HashMap<Position, char>,
+    pos: Position,
+    dir: char,
+    obstacle: Option<Position>,
+) -> Outcome {
     let (dx, dy) = match dir {
         '^' => (0, -1),
         '>' => (1, 0),
@@ -113,21 +101,33 @@ fn step(map: &Input, pos: (isize, isize), dir: char, obstacle: Option<(isize, is
     }
 }
 
+enum Outcome {
+    Turn(char),
+    Move(Position),
+    GetOut,
+}
+
 fn parse(input: &str) -> Input {
-    input
-        .trim()
-        .lines()
-        .enumerate()
-        .flat_map(|(y, row)| {
-            row.chars()
-                .enumerate()
-                .map(|(x, c)| {
-                    (
-                        (isize::try_from(x).unwrap(), isize::try_from(y).unwrap()),
-                        c,
-                    )
-                })
-                .collect::<Vec<_>>()
-        })
-        .collect()
+    let mut start = ((0, 0), '!');
+    (
+        input
+            .trim()
+            .lines()
+            .enumerate()
+            .flat_map(|(y, row)| {
+                row.chars()
+                    .enumerate()
+                    .map(|(x, c)| {
+                        let x = isize::try_from(x).unwrap();
+                        let y = isize::try_from(y).unwrap();
+                        if c == '^' {
+                            start = ((x, y), '^');
+                        }
+                        ((x, y), c)
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect(),
+        start,
+    )
 }
