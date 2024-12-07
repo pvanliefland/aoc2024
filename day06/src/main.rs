@@ -18,7 +18,7 @@ fn main() {
 }
 
 fn part_1(input: &Input) -> (usize, HashSet<(isize, isize)>) {
-    let (mut current_pos, mut current_dir) = input
+    let (mut pos, mut dir) = input
         .iter()
         .find(|(_, c)| *c == &'^')
         .map(|(p, c)| (*p, *c))
@@ -26,18 +26,18 @@ fn part_1(input: &Input) -> (usize, HashSet<(isize, isize)>) {
     let mut visited = HashSet::new();
     let mut targets = HashSet::new();
     loop {
-        match step(input, (current_pos, current_dir)) {
+        match step(input, pos, dir) {
             Outcome::Move(next_pos) => {
-                visited.insert(current_pos);
-                targets.insert(current_pos);
-                current_pos = next_pos;
+                visited.insert(pos);
+                targets.insert(pos);
+                pos = next_pos;
             }
             Outcome::Turn(next_dir) => {
-                current_dir = next_dir;
+                dir = next_dir;
             }
             Outcome::GetOut => {
-                visited.insert(current_pos);
-                targets.insert(current_pos);
+                visited.insert(pos);
+                targets.insert(pos);
                 break;
             }
         }
@@ -55,7 +55,7 @@ fn part_2(input: &Input, part_1: HashSet<(isize, isize)>) -> usize {
     let mut loops = 0;
 
     for candidate in part_1 {
-        let (mut current_pos, mut current_dir) = input
+        let (mut pos, mut dir) = input
             .iter()
             .find(|(_, c)| *c == &'^')
             .map(|(p, c)| (*p, *c))
@@ -63,36 +63,36 @@ fn part_2(input: &Input, part_1: HashSet<(isize, isize)>) -> usize {
         let mut visited = HashSet::new();
 
         loop {
-            let (dx, dy) = match current_dir {
+            let (dx, dy) = match dir {
                 '^' => (0, -1),
                 '>' => (1, 0),
                 'v' => (0, 1),
                 '<' => (-1, 0),
                 _ => panic!("Oops"),
             };
-            let next_pos = (current_pos.0 + dx, current_pos.1 + dy);
+            let next_pos = (pos.0 + dx, pos.1 + dy);
             match (next_pos == candidate, input.get(&next_pos)) {
                 (true, _) | (false, Some('#')) => {
-                    let next_dir = match current_dir {
+                    let next_dir = match dir {
                         '^' => '>',
                         '>' => 'v',
                         'v' => '<',
                         '<' => '^',
                         _ => panic!("Oops"),
                     };
-                    current_dir = next_dir;
+                    dir = next_dir;
                 }
                 (false, Some('.' | '^' | '>' | 'v' | '<')) => {
-                    if visited.contains(&(current_pos, current_dir)) {
+                    if visited.contains(&(pos, dir)) {
                         loops += 1;
                         break;
                     }
-                    visited.insert((current_pos, current_dir));
-                    current_pos = next_pos;
+                    visited.insert((pos, dir));
+                    pos = next_pos;
                 }
                 (false, Some(_)) => panic!("Oops"),
                 (false, None) => {
-                    visited.insert((current_pos, current_dir));
+                    visited.insert((pos, dir));
                     break;
                 }
             }
@@ -102,27 +102,24 @@ fn part_2(input: &Input, part_1: HashSet<(isize, isize)>) -> usize {
     loops
 }
 
-fn step(map: &Input, current: ((isize, isize), char)) -> Outcome {
-    let (dx, dy) = match current.1 {
+fn step(map: &Input, pos: (isize, isize), dir: char) -> Outcome {
+    let (dx, dy) = match dir {
         '^' => (0, -1),
         '>' => (1, 0),
         'v' => (0, 1),
         '<' => (-1, 0),
         _ => panic!("Oops"),
     };
-    let next = (current.0 .0 + dx, current.0 .1 + dy);
-    match map.get(&next) {
-        Some('#') => {
-            let next_dir = match current.1 {
-                '^' => '>',
-                '>' => 'v',
-                'v' => '<',
-                '<' => '^',
-                _ => panic!("Oops"),
-            };
-            Outcome::Turn(next_dir)
-        }
-        Some('.' | '^' | '>' | 'v' | '<') => Outcome::Move(next),
+    let next_pos = (pos.0 + dx, pos.1 + dy);
+    match map.get(&next_pos) {
+        Some('#') => Outcome::Turn(match dir {
+            '^' => '>',
+            '>' => 'v',
+            'v' => '<',
+            '<' => '^',
+            _ => panic!("Oops"),
+        }),
+        Some('.' | '^' | '>' | 'v' | '<') => Outcome::Move(next_pos),
         Some(_) => panic!("Oops"),
         None => Outcome::GetOut,
     }
