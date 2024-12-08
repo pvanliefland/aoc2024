@@ -17,56 +17,36 @@ fn main() {
 fn part_1_2(input: &Input) -> (usize, usize) {
     let mut without_concat = 0;
     let mut with_concat = 0;
-    for (left, right) in input {
-        if validate(*left, right, false) {
+    input.iter().for_each(|(left, right)| {
+        if computations(right, false)
+            .into_iter()
+            .any(|value| left == &value)
+        {
             without_concat += left;
-        } else if validate(*left, right, true) {
+        } else if computations(right, true)
+            .into_iter()
+            .any(|value| left == &value)
+        {
             with_concat += left;
         }
-    }
+    });
     (without_concat, with_concat + without_concat)
 }
 
-fn validate(left: usize, right: &[usize], concat: bool) -> bool {
-    let operators = if concat {
-        vec!['+', '*', '|']
+fn computations(operands: &[usize], concat: bool) -> Vec<usize> {
+    if operands.len() == 1 {
+        operands.to_vec()
     } else {
-        vec!['+', '*']
-    };
-    let combinations = combinations(&operators, right.len() - 1);
-    combinations.iter().any(|combo| {
-        let mut result = right[0];
-        for (index, op) in combo.iter().enumerate() {
-            match op {
-                '+' => {
-                    result += right[index + 1];
-                }
-                '*' => {
-                    result *= right[index + 1];
-                }
-                '|' => {
-                    result = (result.to_string() + &right[index + 1].to_string())
-                        .parse()
-                        .unwrap();
-                }
-                _ => panic!("oops"),
+        let mut results = vec![];
+        let (last, others) = operands.split_last().unwrap();
+        for other in computations(others, concat) {
+            results.push(other + last);
+            results.push(other * last);
+            if concat {
+                results.push((other.to_string() + &last.to_string()).parse().unwrap());
             }
         }
-        left == result
-    })
-}
-
-fn combinations<T: Copy + Clone>(items: &[T], size: usize) -> Vec<Vec<T>> {
-    if size == 1 {
-        items.iter().map(|item| vec![*item]).collect()
-    } else {
-        let mut result = vec![];
-        for item in items {
-            for combination in combinations(items, size - 1) {
-                result.push([vec![*item], combination].concat());
-            }
-        }
-        result
+        results
     }
 }
 
