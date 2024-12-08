@@ -28,7 +28,12 @@ fn part_1_2(input: &Input) -> (usize, usize) {
 }
 
 fn validate(left: usize, right: &[usize], concat: bool) -> bool {
-    let combinations = combinations(right.len() - 1, concat);
+    let operators = if concat {
+        vec!['+', '*', '|']
+    } else {
+        vec!['+', '*']
+    };
+    let combinations = combinations(&operators, right.len() - 1);
     combinations.iter().any(|combo| {
         let mut result = right[0];
         for (index, op) in combo.iter().enumerate() {
@@ -51,23 +56,18 @@ fn validate(left: usize, right: &[usize], concat: bool) -> bool {
     })
 }
 
-fn combinations(size: usize, concat: bool) -> Vec<Vec<char>> {
-    let pools = if concat {
-        vec![vec!['+', '*', '|']; size]
+fn combinations<T: Copy + Clone>(items: &[T], size: usize) -> Vec<Vec<T>> {
+    if size == 1 {
+        items.iter().map(|item| vec![*item]).collect()
     } else {
-        vec![vec!['+', '*']; size]
-    };
-    let mut result = vec![vec![]];
-    for pool in pools {
-        let mut combinations = vec![];
-        for x in result {
-            for y in &pool {
-                combinations.push([x.clone(), vec![*y]].concat());
+        let mut result = vec![];
+        for item in items {
+            for combination in combinations(items, size - 1) {
+                result.push([vec![*item], combination].concat());
             }
         }
-        result = combinations;
+        result
     }
-    result
 }
 
 fn parse(input: &str) -> Input {

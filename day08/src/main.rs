@@ -54,7 +54,7 @@ fn count_antinodes(
     antinodes.len()
 }
 
-fn combinations<T: Copy + Clone + Eq>(items: &[T], size: usize) -> Vec<Vec<T>> {
+fn combinations<T: Copy + Clone>(items: &[T], size: usize) -> Vec<Vec<T>> {
     if size == 1 {
         items.iter().map(|item| vec![*item]).collect()
     } else {
