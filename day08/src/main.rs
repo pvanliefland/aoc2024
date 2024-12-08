@@ -51,7 +51,6 @@ fn count_antinodes(
             }
         }
     }
-
     antinodes.len()
 }
 
@@ -59,30 +58,22 @@ fn combinations<T: Copy + Clone + Eq>(items: &[T], size: usize) -> Vec<Vec<T>> {
     if size == 1 {
         items.iter().map(|item| vec![*item]).collect()
     } else {
-        let mut visited = vec![];
-        items
-            .iter()
-            .flat_map(|&item| {
-                visited.push(item);
-                combinations(
-                    &items
-                        .iter()
-                        .filter(|&other_item| *other_item != item && !visited.contains(other_item))
-                        .copied()
-                        .collect::<Vec<_>>(),
-                    size - 1,
-                )
-                .into_iter()
-                .map(move |perms| [vec![item], perms].concat())
-            })
-            .collect()
+        let mut result = vec![];
+        let mut items = items.to_vec();
+        while !items.is_empty() {
+            let item = items.remove(0);
+            for combination in combinations(&items, size - 1) {
+                result.push([vec![item], combination].concat());
+            }
+        }
+        result
     }
 }
 
 fn parse(input: &str) -> Input {
     let mut grid: HashMap<char, Vec<(isize, isize)>> = HashMap::new();
-    input.trim().lines().enumerate().for_each(|(y, line)| {
-        line.chars()
+    input.trim().lines().enumerate().for_each(|(y, row)| {
+        row.chars()
             .enumerate()
             .filter(|(_, c)| c != &'.')
             .for_each(|(x, c)| {
