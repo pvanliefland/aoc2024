@@ -4,7 +4,7 @@ const INPUT: &str = include_str!("../input.txt");
 type Input = Vec<Option<usize>>;
 type Input2 = Vec<Chunk>;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 enum Chunk {
     File(usize, usize),
     Free(usize),
@@ -14,10 +14,11 @@ fn main() {
     let test_input = parse(INPUT_TEST);
     let input = parse(INPUT);
     let test_input_2 = parse_2(INPUT_TEST);
+    let input_2 = parse_2(INPUT);
     println!("Part 1   test          {} ", part_1(&test_input));
     println!("         validation    {} ", part_1(&input));
     println!("Part 2   test          {} ", part_2(&test_input_2));
-    // println!("         validation    {} ", part_2(&input));
+    println!("         validation    {} ", part_2(&input_2));
 }
 
 fn part_1(input: &Input) -> usize {
@@ -37,7 +38,6 @@ fn part_1(input: &Input) -> usize {
             head += 1;
         }
     }
-    // yolo(&blocks);
     blocks
         .iter()
         .enumerate()
@@ -47,44 +47,47 @@ fn part_1(input: &Input) -> usize {
 
 fn part_2(input: &Input2) -> usize {
     let mut blocks = input.clone();
-    let mut head = 0;
     let mut tail = input.len() - 1;
-    println!("{}-{}", head, tail);
-    loop {
-        if tail <= head {
-            break;
-        }
-        match (blocks[tail], blocks[head]) {
-            (Chunk::File(_, s1), Chunk::Free(s2)) if s1 <= s2 => {
-                blocks.swap(head, tail);
-                tail -= 1;
-                head += 1;
-                if s1 - s2 > 0 {
-                    let new = Chunk::Free(s2 - s1);
-                    blocks.insert(head, new);
-                    head += 1;
+    while tail > 1 {
+        match blocks[tail] {
+            Chunk::File(_, file_size) => {
+                if let Some((head, free_size)) = blocks
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, b)| match b {
+                        Chunk::Free(size) => Some((i, *size)),
+                        Chunk::File(_, _) => None,
+                    })
+                    .find(|(i, free_size)| i < &tail && free_size >= &file_size)
+                {
+                    let (free1, free2) =
+                        (Chunk::Free(free_size - file_size), Chunk::Free(file_size));
+                    blocks.remove(head);
+                    blocks.insert(head, blocks[tail - 1]);
+                    blocks.remove(tail);
+                    blocks.insert(head + 1, free1);
+                    blocks.insert(tail, free2);
                 }
+                tail -= 1;
             }
-            (Chunk::File(_, _), _) => {
-                head += 1;
-            }
-            (Chunk::Free(_), _) => {
+            Chunk::Free(_) => {
                 tail -= 1;
             }
         }
-        yolo(&blocks);
     }
     blocks
         .iter()
-        .enumerate()
-        .filter_map(|(i, b)| match b {
-            Chunk::File(id, _) => Some(i * id),
-            Chunk::Free(_) => None,
+        .flat_map(|b| match b {
+            Chunk::File(id, size) => vec![Some(id); *size],
+            Chunk::Free(size) => vec![None; *size],
         })
+        .enumerate()
+        .filter_map(|(i, b)| b.map(|b| b * i))
         .sum()
 }
 
-fn yolo(blocks: &[Chunk]) {
+#[allow(unused)]
+fn debug(blocks: &[Chunk]) {
     println!(
         "{}",
         blocks
