@@ -1,5 +1,3 @@
-use std::fmt::DebugSet;
-
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
 
@@ -67,13 +65,9 @@ fn part_2(input: &DiskLayout) -> usize {
                     })
                     .find(|(i, free_size)| i < &tail && free_size >= &file_size)
                 {
-                    let (free1, free2) =
-                        (Block::Free(free_size - file_size), Block::Free(file_size));
-                    blocks.remove(head);
-                    blocks.insert(head, blocks[tail - 1]);
-                    blocks.remove(tail);
-                    blocks.insert(head + 1, free1);
-                    blocks.insert(tail, free2);
+                    blocks[head] = blocks[tail];
+                    blocks[tail] = Block::Free(file_size);
+                    blocks.insert(head + 1, Block::Free(free_size - file_size));
                 }
                 tail -= 1;
             }
