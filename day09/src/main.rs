@@ -87,21 +87,6 @@ fn part_2(input: &DiskLayout) -> usize {
         .sum()
 }
 
-#[allow(unused)]
-fn debug(blocks: &[Block]) {
-    println!(
-        "{}",
-        blocks
-            .iter()
-            .map(|b| match b {
-                Block::File(id, size) =>
-                    vec![id.to_string(); *size].into_iter().collect::<String>(),
-                Block::Free(size) => vec![".".to_string(); *size].into_iter().collect::<String>(),
-            })
-            .collect::<String>()
-    );
-}
-
 fn parse(input: &str) -> (DiskLayout, DiskLayout) {
     let (mut small_blocks, mut big_blocks) = (vec![], vec![]);
     input.trim().chars().enumerate().for_each(|(i, b)| {
