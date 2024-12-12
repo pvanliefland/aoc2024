@@ -1,7 +1,6 @@
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     hash::RandomState,
-    ops::ControlFlow,
 };
 
 const INPUT_TEST: &str = include_str!("../input_test.txt");
@@ -14,31 +13,27 @@ type Graph = HashMap<Position, Vec<Position>>;
 fn main() {
     let test_input = parse(INPUT_TEST);
     let input = parse(INPUT);
-    // println!("Part 1   test          {} ", part_1(&test_input).0);
-    // println!("         validation    {} ", part_1(&input));
-    println!("Part 2   test          {} ", part_1(&test_input).1);
-    println!("         validation    {} ", part_1(&input).1);
+    let (test_price, test_discount_price) = calculate_prices(&test_input);
+    let (price, discount_price) = calculate_prices(&input);
+    println!("Part 1   test          {} ", test_price);
+    println!("         validation    {} ", price);
+    println!("Part 2   test          {} ", test_discount_price);
+    println!("         validation    {} ", discount_price);
 }
 
-fn part_1(input: &(Map, Graph)) -> (usize, usize) {
+fn calculate_prices(input: &(Map, Graph)) -> (usize, usize) {
     let (mut price, mut discount_price) = (0, 0);
     let (map, graph) = input;
     let mut all_explored: HashSet<Position> = HashSet::new();
     for (pos, c) in map {
         if !all_explored.contains(pos) {
-            // pos is a root
             let (area, perimeter, sides) = explore(map, graph, (*pos, *c), &mut all_explored);
-            println!("{}: {}", c, sides);
             price += area * perimeter;
             discount_price += area * sides;
         }
     }
     (price, discount_price)
 }
-
-// fn part_2(input: &Input) -> u32 {
-//     input.trim().parse::<u32>().unwrap()
-// }
 
 fn explore(
     map: &Map,
@@ -68,7 +63,6 @@ fn explore(
         }
     }
 
-    // let's cast some rays now lol
     let mut sides = 0;
     let mut x_collisions = vec![];
     for y in min_y..=max_y {
