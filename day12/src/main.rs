@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    time::Instant,
+};
 
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
@@ -8,6 +11,7 @@ type Map = HashMap<Position, char>;
 type Graph = HashMap<Position, Vec<Position>>;
 
 fn main() {
+    let start = Instant::now();
     let test_input = parse(INPUT_TEST);
     let input = parse(INPUT);
     let (test_price, test_discount_price) = calculate_prices(&test_input);
@@ -16,6 +20,7 @@ fn main() {
     println!("         validation    {} ", price);
     println!("Part 2   test          {} ", test_discount_price);
     println!("         validation    {} ", discount_price);
+    println!("Duration: {:?}", start.elapsed());
 }
 
 fn calculate_prices(input: &(Map, Graph)) -> (usize, usize) {
