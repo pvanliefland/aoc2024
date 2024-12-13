@@ -1,17 +1,21 @@
+use std::time::Instant;
+
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
 
-type Machine = [[isize; 2]; 3];
+type Machine = Vec<Vec<isize>>;
 type Input = Vec<Machine>;
 const YOLO: isize = 10000000000000;
 
 fn main() {
+    let start = Instant::now();
     let test_input = parse(INPUT_TEST);
     let input = parse(INPUT);
     println!("Part 1   test          {} ", solve(&test_input, 0));
     println!("         validation    {} ", solve(&input, 0));
     println!("Part 2   test          {} ", solve(&test_input, YOLO));
     println!("         validation    {} ", solve(&input, YOLO));
+    println!("Duration: {:?}", start.elapsed());
 }
 
 fn solve(input: &Input, dp: isize) -> isize {
@@ -53,12 +57,8 @@ fn parse(input: &str) -> Input {
                                 .unwrap()
                         })
                         .collect::<Vec<_>>()
-                        .try_into()
-                        .unwrap()
                 })
                 .collect::<Vec<_>>()
-                .try_into()
-                .unwrap()
         })
         .collect()
 }
