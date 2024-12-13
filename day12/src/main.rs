@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    hash::RandomState,
-};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
@@ -44,9 +41,10 @@ fn explore(
     let (root_pos, root_c) = root;
     let (mut min_x, mut max_x, mut min_y, mut max_y) =
         (root_pos.0, root_pos.0, root_pos.1, root_pos.1);
+
     let mut perimeter = 0;
     let mut queue = VecDeque::from_iter(vec![root_pos]);
-    let mut explored: HashSet<(isize, isize), RandomState> = HashSet::from_iter(vec![root_pos]);
+    let mut explored: HashSet<Position> = HashSet::from_iter(vec![root_pos]);
     while let Some(pos) = queue.pop_front() {
         let neighbors = graph.get(&pos).unwrap();
         perimeter += 4 - neighbors.len();
@@ -73,7 +71,6 @@ fn explore(
                 inside = next_inside;
                 x_collisions.push((x, y, inside));
                 if !x_collisions.contains(&(x, y - 1, inside)) {
-                    println!("x coll at {},{}", x, y);
                     sides += 1;
                 }
             }
@@ -88,12 +85,12 @@ fn explore(
                 inside = next_inside;
                 y_collisions.push((x, y, inside));
                 if !y_collisions.contains(&(x - 1, y, inside)) {
-                    println!("y coll at {},{}", x, y);
                     sides += 1;
                 }
             }
         }
     }
+
     (explored.len(), perimeter, sides)
 }
 
