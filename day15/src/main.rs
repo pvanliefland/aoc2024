@@ -3,7 +3,7 @@ use std::time::Instant;
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 // const INPUT: &str = include_str!("../input.txt");
 
-type Input = usize;
+type Input = u32;
 
 fn main() {
     let start = Instant::now();
@@ -16,15 +16,15 @@ fn main() {
     println!("Duration: {:?}", start.elapsed());
 }
 
-fn part_1(input: &Input) -> usize {
+fn part_1(input: &Input) -> u32 {
     dbg!(input);
     42
 }
 
-// fn part_2(input: &Input) -> usize {
+// fn part_2(input: &Input) -> u32 {
 //     input.trim().parse::<u32>().unwrap()
 // }
 
 fn parse(input: &str) -> Input {
-    input.trim().parse().unwrap()
+    input.trim().parse::<u32>().unwrap()
 }
