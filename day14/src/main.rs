@@ -30,49 +30,22 @@ fn main() {
 fn part_1(input: &(Vec<Robot>, Map), width: isize, height: isize) -> usize {
     let (mut robots, _p) = input.clone();
     // more than 5717 (last: 232)
-    for i in 5717..=5721 {
+    for i in 1..20000 {
         step(&mut robots, width, height);
-        print_map(&map_robots(&robots), width, height);
-        let quadrants = [
-            ((0, 0), (width - 1) / 2, (height - 1) / 2),
-            (((width - 1) / 2 + 1, 0), (width - 1) / 2, (height - 1) / 2),
-            ((0, (height - 1) / 2 + 1), (width - 1) / 2, (height - 1) / 2),
-            (
-                ((width - 1) / 2 + 1, (height - 1) / 2 + 1),
-                (width - 1) / 2,
-                (height - 1) / 2,
-            ),
-        ];
-        let by_q = quadrants
+        let map = map_robots(&robots);
+        if map
             .iter()
-            .map(|q| {
-                map_robots(
-                    &robots
-                        .iter()
-                        .filter(|r| {
-                            r.p.0 >= q.0 .0
-                                && r.p.0 < q.0 .0 + q.1
-                                && r.p.1 >= q.0 .1
-                                && r.p.1 < q.0 .1 + q.2
-                        })
-                        .copied()
-                        .collect::<Vec<_>>(),
-                )
-                .values()
-                .sum::<usize>()
+            .filter(|(p, _)| {
+                map.contains_key(&(p.0 - 1, p.1 + 1))
+                    && map.contains_key(&(p.0 - 2, p.1 + 2))
+                    && map.contains_key(&(p.0 - 3, p.1 + 3))
             })
-            .collect::<Vec<_>>();
-        if by_q[0] == by_q[1] && by_q[2] == by_q[3] {
-            let map = map_robots(&robots);
-            println!("candidate");
-            if (40..60).all(|y| map.get(&(49, y)) == map.get(&(51, y)))
-                && (40..60).all(|y| map.get(&(47, y)) == map.get(&(53, y)))
-                && (40..60).all(|y| map.get(&(45, y)) == map.get(&(55, y)))
-            {
-                print_map(&map_robots(&robots), width, height);
-                println!("Iteration {}", i + 1);
-                break;
-            }
+            .count()
+            > 10
+        {
+            print_map(&map, width, height);
+            println!("Iteration {}", i);
+            break;
         }
     }
 
