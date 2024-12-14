@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    thread::sleep,
-    time::{Duration, Instant},
-};
+use std::{collections::HashMap, time::Instant};
 
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
@@ -14,22 +10,51 @@ struct Robot {
 }
 type Position = (isize, isize);
 type Velocity = (isize, isize);
-type Map<'r> = HashMap<Position, Vec<Robot>>;
 
 fn main() {
     let start = Instant::now();
     let (test_input, tw, th) = (parse(INPUT_TEST), 11, 7);
     let (input, w, h) = (parse(INPUT), 101, 103);
-    // println!("Part 1   test          {} ", part_1(&test_input, tw, th));
+    println!("Part 1   test          {} ", part_1(&test_input, tw, th));
     println!("         validation    {} ", part_1(&input, w, h));
-    // println!("Part 2   test          {} ", part_2(&test_input));
-    // println!("         validation    {} ", part_2(&input));
+    // println!("Part 2   test          {:?} ", part_2(&test_input, w, h));
+    println!("         validation    {} ", part_2(&input, w, h).unwrap());
     println!("Duration: {:?}", start.elapsed());
 }
 
-fn part_1(input: &(Vec<Robot>, Map), width: isize, height: isize) -> usize {
-    let (mut robots, _p) = input.clone();
-    for i in 1..20000 {
+fn part_1(robots: &[Robot], width: isize, height: isize) -> usize {
+    let mut robots = robots.to_owned();
+    for _ in 0..100 {
+        step(&mut robots, width, height);
+    }
+    let (qw, qh) = ((width - 1) / 2, (height - 1) / 2);
+    [
+        ((0, 0), qw, qh),
+        ((qw + 1, 0), qw, qh),
+        ((0, qh + 1), qw, qh),
+        ((qw + 1, qh + 1), qw, qh),
+    ]
+    .iter()
+    .map(|q| {
+        map_robots(
+            &robots
+                .iter()
+                .filter(|r| {
+                    ((q.0 .0)..(q.0 .0 + q.1)).contains(&r.p.0)
+                        && ((q.0 .1)..(q.0 .1 + q.2)).contains(&r.p.1)
+                })
+                .copied()
+                .collect::<Vec<_>>(),
+        )
+        .values()
+        .sum::<usize>()
+    })
+    .product()
+}
+
+fn part_2(robots: &[Robot], width: isize, height: isize) -> Option<usize> {
+    let mut robots = robots.to_owned();
+    for i in 1..10000 {
         step(&mut robots, width, height);
         let map = map_robots(&robots);
         if map
@@ -42,41 +67,11 @@ fn part_1(input: &(Vec<Robot>, Map), width: isize, height: isize) -> usize {
             .count()
             > 10
         {
-            print_map(&map, width, height);
-            println!("Iteration {}", i);
-            break;
+            // print_map(&map, width, height);
+            return Some(i);
         }
     }
-
-    let quadrants = [
-        ((0, 0), (width - 1) / 2, (height - 1) / 2),
-        (((width - 1) / 2 + 1, 0), (width - 1) / 2, (height - 1) / 2),
-        ((0, (height - 1) / 2 + 1), (width - 1) / 2, (height - 1) / 2),
-        (
-            ((width - 1) / 2 + 1, (height - 1) / 2 + 1),
-            (width - 1) / 2,
-            (height - 1) / 2,
-        ),
-    ];
-    quadrants
-        .iter()
-        .map(|q| {
-            map_robots(
-                &robots
-                    .iter()
-                    .filter(|r| {
-                        r.p.0 >= q.0 .0
-                            && r.p.0 < q.0 .0 + q.1
-                            && r.p.1 >= q.0 .1
-                            && r.p.1 < q.0 .1 + q.2
-                    })
-                    .copied()
-                    .collect::<Vec<_>>(),
-            )
-            .values()
-            .sum::<usize>()
-        })
-        .product()
+    None
 }
 
 fn map_robots(robots: &Vec<Robot>) -> HashMap<Position, usize> {
@@ -89,6 +84,39 @@ fn map_robots(robots: &Vec<Robot>) -> HashMap<Position, usize> {
     map
 }
 
+fn step(robots: &mut Vec<Robot>, width: isize, height: isize) {
+    for robot in robots {
+        robot.p = (
+            match robot.p.0 + robot.v.0 {
+                x if x < 0 => x + width,
+                x if x >= width => x - width,
+                x => x,
+            },
+            match robot.p.1 + robot.v.1 {
+                y if y < 0 => y + height,
+                y if y >= height => y - height,
+                y => y,
+            },
+        );
+    }
+}
+
+fn parse(input: &str) -> Vec<Robot> {
+    input
+        .lines()
+        .map(|line| {
+            let (p, v) = line.split_once(" ").unwrap();
+            let (x, y) = p.split_once("=").unwrap().1.split_once(",").unwrap();
+            let (dx, dy) = v.split_once("=").unwrap().1.split_once(",").unwrap();
+            Robot {
+                p: (x.parse().unwrap(), y.parse().unwrap()),
+                v: (dx.parse().unwrap(), dy.parse().unwrap()),
+            }
+        })
+        .collect()
+}
+
+#[allow(unused)]
 fn print_map(map: &HashMap<Position, usize>, width: isize, height: isize) {
     for y in 0..height {
         for x in 0..width {
@@ -102,47 +130,4 @@ fn print_map(map: &HashMap<Position, usize>, width: isize, height: isize) {
         println!();
     }
     println!();
-}
-
-// fn part_2(input: &Input) -> u32 {
-//     input.trim().parse::<u32>().unwrap()
-// }
-
-fn step(robots: &mut Vec<Robot>, width: isize, height: isize) {
-    for robot in robots {
-        let (mut new_x, mut new_y) = (robot.p.0 + robot.v.0, robot.p.1 + robot.v.1);
-        if new_x < 0 {
-            new_x += width;
-        } else if new_x >= width {
-            new_x -= width;
-        }
-        if new_y < 0 {
-            new_y += height;
-        } else if new_y >= height {
-            new_y -= height;
-        }
-        robot.p = (new_x, new_y);
-    }
-}
-
-fn parse(input: &str) -> (Vec<Robot>, Map) {
-    let robots = input
-        .lines()
-        .map(|line| {
-            let (p, v) = line.split_once(" ").unwrap();
-            let (x, y) = p.split_once("=").unwrap().1.split_once(",").unwrap();
-            let (dx, dy) = v.split_once("=").unwrap().1.split_once(",").unwrap();
-            Robot {
-                p: (x.parse().unwrap(), y.parse().unwrap()),
-                v: (dx.parse().unwrap(), dy.parse().unwrap()),
-            }
-        })
-        .collect::<Vec<_>>();
-    let mut map: Map = HashMap::new();
-    for robot in &robots {
-        map.entry(robot.p)
-            .and_modify(|list: &mut _| list.push(*robot))
-            .or_insert(vec![*robot]);
-    }
-    (robots, map)
 }
