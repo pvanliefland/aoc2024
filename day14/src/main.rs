@@ -29,7 +29,6 @@ fn main() {
 
 fn part_1(input: &(Vec<Robot>, Map), width: isize, height: isize) -> usize {
     let (mut robots, _p) = input.clone();
-    // more than 5717 (last: 232)
     for i in 1..20000 {
         step(&mut robots, width, height);
         let map = map_robots(&robots);
