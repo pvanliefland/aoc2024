@@ -2,20 +2,25 @@ use core::panic;
 use std::{collections::HashMap, time::Instant};
 
 const INPUT_TEST: &str = include_str!("../input_test.txt");
+const INPUT_TEST_PART_2_SIMPLE: &str = include_str!("../input_test_part2_simple.txt");
 const INPUT: &str = include_str!("../input.txt");
 
 type Position = (isize, isize);
 type Map = HashMap<Position, char>;
 type Move = (isize, isize);
-type Input = (Map, Position, isize, Vec<Move>);
+type Input = (Map, Position, (isize, isize), Vec<Move>);
 
 fn main() {
     let start = Instant::now();
-    let test_input = parse(INPUT_TEST);
-    let input = parse(INPUT);
+    let test_input = parse(INPUT_TEST, false);
+    let test_input_part2_simple = parse(INPUT_TEST_PART_2_SIMPLE, true);
+    let input = parse(INPUT, false);
     println!("Part 1   test          {} ", part_1(&test_input));
     println!("         validation    {} ", part_1(&input));
-    // println!("Part 2   test          {} ", part_2(&test_input));
+    println!(
+        "Part 2   test          {} ",
+        part_2(&test_input_part2_simple)
+    );
     // println!("         validation    {} ", part_2(&input));
     println!("Duration: {:?}", start.elapsed());
 }
@@ -36,9 +41,15 @@ fn part_1(input: &Input) -> usize {
         .sum()
 }
 
-// fn part_2(input: &Input) -> u32 {
-//     input.trim().parse::<u32>().unwrap()
-// }
+fn part_2(input: &Input) -> usize {
+    let (mut map, mut pos, size, moves) = input.clone();
+    // print_map(&map, pos, size);
+    for mov in moves {
+        step(&mut map, &mut pos, mov);
+        // print_map(&map, pos, size);
+    }
+    42
+}
 
 fn step(map: &mut Map, pos: &mut Position, mov: Move) {
     let next_pos = (pos.0 + mov.0, pos.1 + mov.1);
@@ -89,11 +100,12 @@ fn step(map: &mut Map, pos: &mut Position, mov: Move) {
                 *pos = next_pos;
             }
         }
+        '[' | ']' => {}
         _ => panic!("Oops"),
     }
 }
 
-fn parse(input: &str) -> Input {
+fn parse(input: &str, double: bool) -> Input {
     let (map_data, moves_data) = input.trim().split_once("\n\n").unwrap();
     let mut map: Map = map_data
         .lines()
@@ -101,6 +113,18 @@ fn parse(input: &str) -> Input {
         .flat_map(|(y, row)| {
             row.trim()
                 .chars()
+                .flat_map(|c| {
+                    if double {
+                        match c {
+                            'O' => vec!['[', ']'],
+                            '@' => vec!['@', '.'],
+                            o if o == '.' || o == '#' => vec![o, o],
+                            _ => panic!("Oops"),
+                        }
+                    } else {
+                        vec![c]
+                    }
+                })
                 .enumerate()
                 .map(|(x, c)| ((x as isize, y as isize), c))
                 .collect::<Vec<_>>()
@@ -111,10 +135,11 @@ fn parse(input: &str) -> Input {
         .find_map(|(pos, c)| if c == &'@' { Some(pos) } else { None })
         .unwrap();
     *map.get_mut(&start).unwrap() = '.';
+    let map_line_count = map_data.lines().count() as isize;
     (
         map,
         start,
-        map_data.lines().count() as isize,
+        (map_line_count * if double { 2 } else { 1 }, map_line_count),
         moves_data
             .lines()
             .collect::<String>()
@@ -132,16 +157,19 @@ fn parse(input: &str) -> Input {
 }
 
 #[allow(unused)]
-fn print_map(map: &Map, current_pos: Position, size: isize) {
+fn print_map(map: &Map, current_pos: Position, size: (isize, isize)) {
     for (pos, c) in map {}
-    for y in 0..size {
-        for x in 0..size {
+    for y in 0..size.1 {
+        for x in 0..size.0 {
             print!(
                 "{}",
                 if (x, y) == current_pos {
                     '@'
                 } else {
-                    *map.get(&(x, y)).unwrap()
+                    *map.get(&(x, y)).unwrap_or_else(|| {
+                        dbg!((x, y));
+                        panic!("OOps");
+                    })
                 }
             );
         }
