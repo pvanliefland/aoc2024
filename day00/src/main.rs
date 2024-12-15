@@ -22,7 +22,7 @@ fn part_1(input: &Input) -> usize {
 }
 
 // fn part_2(input: &Input) -> usize {
-//     input.trim().parse::<u32>().unwrap()
+//     input.trim().parse::<usize>().unwrap()
 // }
 
 fn parse(input: &str) -> Input {
