@@ -5,7 +5,7 @@ const INPUT_TEST_1: &str = include_str!("../input_test_1.txt");
 const INPUT_TEST_2: &str = include_str!("../input_test_2.txt");
 const INPUT: &str = include_str!("../input.txt");
 
-type Input = (u128, u128, u128, u128);
+type Input = (u64, u64, u64, u128);
 
 fn main() {
     let start = Instant::now();
@@ -29,7 +29,7 @@ fn part_1(input: &Input) -> String {
         .join(",")
 }
 
-fn part_2(input: &Input) -> u128 {
+fn part_2(input: &Input) -> u64 {
     let (_a, b, c, program) = input;
     let mut a = 0;
 
@@ -38,14 +38,14 @@ fn part_2(input: &Input) -> u128 {
         if candidate_output == *program {
             break a;
         }
-        if a % 1000000 == 0 {
-            println!("{a}");
+        if candidate_output > 432632566911140866 {
+            println!("{a}: {candidate_output} (program: {program})");
         }
         a += 1
     }
 }
 
-fn run(a: u128, b: u128, c: u128, program: &u128, quine: bool) -> u128 {
+fn run(a: u64, b: u64, c: u64, program: &u128, quine: bool) -> u128 {
     let (mut a, mut b, mut c) = (a, b, c);
     let mut p = 0;
     let mut o = 0;
@@ -55,7 +55,10 @@ fn run(a: u128, b: u128, c: u128, program: &u128, quine: bool) -> u128 {
             break;
         }
         let (ocs, ops) = (p * 8, (p + 1) * 8);
-        let (oc, op) = (program >> ocs & 0xff, program >> ops & 0xff);
+        let (oc, op) = (
+            (program >> ocs & 0xff) as u64,
+            (program >> ops & 0xff) as u64,
+        );
         let cop = match op {
             l if l <= 3 => l,
             4 => a,
@@ -65,7 +68,7 @@ fn run(a: u128, b: u128, c: u128, program: &u128, quine: bool) -> u128 {
         };
         match oc {
             0 => {
-                a /= 2u128.pow(cop as u32);
+                a /= 2u64.pow(cop as u32);
             }
             1 => {
                 b ^= op;
@@ -81,7 +84,7 @@ fn run(a: u128, b: u128, c: u128, program: &u128, quine: bool) -> u128 {
             }
             4 => b ^= c,
             5 => {
-                let nout = cop % 8;
+                let nout = (cop % 8) as u128;
                 if quine && nout != (program >> (o * 8) & 0xff) {
                     break;
                 }
@@ -89,10 +92,10 @@ fn run(a: u128, b: u128, c: u128, program: &u128, quine: bool) -> u128 {
                 o += 1;
             }
             6 => {
-                b = a / 2u128.pow(cop as u32);
+                b = a / 2u64.pow(cop as u32);
             }
             7 => {
-                c = a / 2u128.pow(cop as u32);
+                c = a / 2u64.pow(cop as u32);
             }
             _ => panic!("Oops"),
         }
