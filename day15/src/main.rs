@@ -3,8 +3,7 @@ use std::{collections::HashMap, time::Instant};
 
 const INPUT_TEST_1: &str = include_str!("../input_test_1.txt");
 const INPUT_TEST_2: &str = include_str!("../input_test_2.txt");
-// const INPUT_TEST_3: &str = include_str!("../input_test_3.txt");
-// const INPUT_TEST_PART_2_SIMPLE: &str = include_str!("../input_test_part2_simple.txt");
+const INPUT_TEST_3: &str = include_str!("../input_test_3.txt");
 const INPUT: &str = include_str!("../input.txt");
 
 type Position = (isize, isize);
@@ -16,20 +15,17 @@ fn main() {
     let start = Instant::now();
     let test_input_1 = parse(INPUT_TEST_1, false);
     let test_input_2 = parse(INPUT_TEST_2, false);
-    // let test_input_part2_simple = parse(INPUT_TEST_PART_2_SIMPLE, true);
+    let test_input_3 = parse(INPUT_TEST_3, true);
     let input = parse(INPUT, false);
-    println!("Part 1   test (simple) {} ", part_1(&test_input_2));
-    println!("Part 1   test          {} ", part_1(&test_input_1));
-    println!("         validation    {} ", part_1(&input));
-    // println!(
-    //     "Part 2   test          {} ",
-    //     part_2(&test_input_part2_simple)
-    // );
+    println!("Part 1   test (simple) {} ", move_boxes(&test_input_2));
+    println!("Part 1   test          {} ", move_boxes(&test_input_1));
+    println!("         validation    {} ", move_boxes(&input));
+    println!("Part 2   test          {} ", move_boxes(&test_input_3));
     // println!("         validation    {} ", part_2(&input));
     println!("Duration: {:?}", start.elapsed());
 }
 
-fn part_1(input: &Input) -> usize {
+fn move_boxes(input: &Input) -> usize {
     let (mut map, mut pos, _size, moves) = input.clone();
     // print_map(&map, pos, _size);
     for mov in moves {
@@ -46,16 +42,6 @@ fn part_1(input: &Input) -> usize {
         })
         .sum()
 }
-
-// fn part_2(input: &Input) -> usize {
-//     let (mut map, mut pos, size, moves) = input.clone();
-//     // print_map(&map, pos, size);
-//     for mov in moves {
-//         step(&mut map, &mut pos, mov);
-//         // print_map(&map, pos, size);
-//     }
-//     42
-// }
 
 fn step(map: &mut Map, pos: &mut Position, mov: Move) {
     let next_pos = (pos.0 + mov.0, pos.1 + mov.1);
@@ -82,15 +68,17 @@ fn step(map: &mut Map, pos: &mut Position, mov: Move) {
             // 2. List boxes we are trying to move
             let mut boxes_to_move = vec![];
             if let Some(target_pos) = target_pos {
-                boxes_to_move.push(next_pos);
-                let mut offset = 1;
+                let mut offset = 0;
+                let mut at_offset = vec![next_pos];
+                boxes_to_move.extend(at_offset);
                 loop {
+                    offset += 1;
                     let box_pos = (next_pos.0 + offset * mov.0, next_pos.1 + offset * mov.1);
                     if box_pos == target_pos {
                         break;
                     }
-                    boxes_to_move.push(box_pos);
-                    offset += 1;
+                    at_offset = vec![box_pos];
+                    boxes_to_move.extend(at_offset);
                 }
             }
 
