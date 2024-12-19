@@ -33,13 +33,11 @@ fn part_2(input: &Input) -> usize {
 }
 
 fn is_possible(wanted: &str, available: &Vec<String>) -> bool {
-    if wanted.is_empty() {
-        return true;
-    }
     for towel in available {
-        if towel.len() <= wanted.len()
-            && &wanted[0..towel.len()] == towel
-            && is_possible(&wanted[towel.len()..], available)
+        if wanted == towel
+            || (towel.len() <= wanted.len()
+                && &wanted[0..towel.len()] == towel
+                && is_possible(&wanted[towel.len()..], available))
         {
             return true;
         }
@@ -53,11 +51,10 @@ fn count_possible<'w>(
 ) -> usize {
     if !cache.contains_key(wanted) {
         let mut count = 0;
-        if wanted.is_empty() {
-            return 1;
-        }
         for towel in available {
-            if towel.len() <= wanted.len()
+            if wanted == towel {
+                count += 1;
+            } else if towel.len() <= wanted.len()
                 && &wanted[0..towel.len()] == towel
                 && is_possible(&wanted[towel.len()..], available)
             {
