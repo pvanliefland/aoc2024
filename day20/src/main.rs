@@ -81,7 +81,7 @@ fn cheat_and_escape(
     let mut escapes = vec![];
     let mut queue = VecDeque::from_iter([Action {
         pos: start,
-        explored: HashSet::new(),
+        explored: HashSet::from_iter([start]),
         steps: 0,
         has_cheated: false,
         cheat_pos_1: None,
