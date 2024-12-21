@@ -46,13 +46,10 @@ fn cheapest_moves(sequence: &[char; 4], position_function: fn(char) -> Position)
             moves[i].push([perm, vec!['A']].concat());
         });
     }
-    dbg!(&moves);
-    let yolo = product(moves);
-    dbg!(&yolo
-        .iter()
-        .map(|yo| yo.iter().flatten().collect::<Vec<_>>())
-        .collect::<Vec<_>>());
-    vec![vec![]]
+    product(moves)
+        .into_iter()
+        .map(|combo| combo.into_iter().flatten().collect::<Vec<_>>())
+        .collect::<Vec<_>>()
 }
 
 fn numeric_keypad_position(c: char) -> Position {
