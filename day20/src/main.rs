@@ -79,7 +79,7 @@ fn cheat_and_escape(
 ) -> Vec<Action> {
     let mut cache: HashMap<Position, Action> = HashMap::new();
     let mut escapes = vec![];
-    let mut queue = VecDeque::from_iter([Action {
+    let mut stack = vec![Action {
         pos: start,
         explored: HashSet::from_iter([start]),
         steps: 0,
@@ -87,7 +87,7 @@ fn cheat_and_escape(
         cheat_pos_1: None,
         cheat_pos_2: None,
         kind: ActionKind::Start,
-    }]);
+    }];
     while let Some(Action {
         pos,
         explored,
@@ -96,7 +96,7 @@ fn cheat_and_escape(
         cheat_pos_1,
         cheat_pos_2,
         kind,
-    }) = queue.pop_front()
+    }) = stack.pop()
     {
         if cheat_pos_2
             .is_some_and(|cheat_pos_2| pos == cheat_pos_2 && cache.contains_key(&cheat_pos_2))
@@ -120,51 +120,51 @@ fn cheat_and_escape(
             println!("discarding");
             continue;
         }
-        for mov in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
-            let adj_pos = (pos.0 + mov.0, pos.1 + mov.1);
-            let mut explored = explored.clone();
-            if explored.contains(&adj_pos) {
-                continue;
-            }
-            explored.insert(adj_pos);
-            match kind {
-                ActionKind::Start | ActionKind::Move => {
-                    if let Some('.' | 'E') = map.get(&adj_pos) {
-                        queue.push_back(Action {
-                            pos: adj_pos,
-                            explored,
-                            steps: steps + 1,
-                            has_cheated,
-                            cheat_pos_1,
-                            cheat_pos_2,
-                            kind: ActionKind::Move,
-                        });
-                    } else if map.get(&adj_pos).is_some_and(|c| c == &'#' && !has_cheated) {
-                        queue.push_back(Action {
-                            pos: adj_pos,
-                            explored,
-                            steps: steps + 1,
-                            has_cheated: true,
-                            cheat_pos_1: Some(adj_pos),
-                            cheat_pos_2,
-                            kind: ActionKind::Cheat,
-                        });
+        let mut explored = explored.clone();
+        if !explored.contains(&pos) {
+            explored.insert(pos);
+            for mov in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
+                let explored = explored.clone();
+                let adj_pos = (pos.0 + mov.0, pos.1 + mov.1);
+                match kind {
+                    ActionKind::Start | ActionKind::Move => {
+                        if let Some('.' | 'E') = map.get(&adj_pos) {
+                            stack.push(Action {
+                                pos: adj_pos,
+                                explored,
+                                steps: steps + 1,
+                                has_cheated,
+                                cheat_pos_1,
+                                cheat_pos_2,
+                                kind: ActionKind::Move,
+                            });
+                        } else if map.get(&adj_pos).is_some_and(|c| c == &'#' && !has_cheated) {
+                            stack.push(Action {
+                                pos: adj_pos,
+                                explored,
+                                steps: steps + 1,
+                                has_cheated: true,
+                                cheat_pos_1: Some(adj_pos),
+                                cheat_pos_2,
+                                kind: ActionKind::Cheat,
+                            });
+                        }
                     }
-                }
-                ActionKind::Cheat => {
-                    if map.get(&adj_pos) != Some(&'#') {
-                        queue.push_back(Action {
-                            pos: adj_pos,
-                            explored,
-                            steps: steps + 1,
-                            has_cheated,
-                            cheat_pos_1,
-                            cheat_pos_2: Some(adj_pos),
-                            kind: ActionKind::Move,
-                        });
+                    ActionKind::Cheat => {
+                        if map.get(&adj_pos) != Some(&'#') {
+                            stack.push(Action {
+                                pos: adj_pos,
+                                explored,
+                                steps: steps + 1,
+                                has_cheated,
+                                cheat_pos_1,
+                                cheat_pos_2: Some(adj_pos),
+                                kind: ActionKind::Move,
+                            });
+                        }
                     }
+                    _ => panic!("Oops"),
                 }
-                _ => panic!("Oops"),
             }
         }
     }
