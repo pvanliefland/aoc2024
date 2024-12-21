@@ -55,6 +55,7 @@ fn part_1(input: &Input) -> usize {
                 .replace("A", "")
                 .parse::<usize>()
                 .unwrap();
+            dbg!(cheapest_move_3.len(), numeric_value);
             cheapest_move_3.len() * numeric_value
         })
         .sum()
