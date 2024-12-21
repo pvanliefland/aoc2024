@@ -1,7 +1,7 @@
-use std::{collections::HashSet, iter::Product, time::Instant};
+use std::{collections::HashSet, time::Instant};
 
 const INPUT_TEST: &str = include_str!("../input_test.txt");
-// const INPUT: &str = include_str!("../input.txt");
+const INPUT: &str = include_str!("../input.txt");
 
 type Input = [[char; 4]; 5];
 type Position = (isize, isize);
@@ -9,30 +9,66 @@ type Position = (isize, isize);
 fn main() {
     let start = Instant::now();
     let test_input = parse(INPUT_TEST);
-    // let input = parse(INPUT);
+    let input = parse(INPUT);
     println!("Part 1   test          {} ", part_1(&test_input));
-    // println!("         validation    {} ", part_1(&input));
+    println!("         validation    {} ", part_1(&input));
     // println!("Part 2   test          {} ", part_2(&test_input));
     // println!("         validation    {} ", part_2(&input));
     println!("Duration: {:?}", start.elapsed());
 }
 
 fn part_1(input: &Input) -> usize {
-    input.iter().take(1).for_each(|seq| {
-        println!(
-            "{}",
-            cheapest_moves(seq, numeric_keypad_position)
+    input
+        .iter()
+        .map(|seq_1| {
+            let moves_1 = compute_moves(seq_1.to_vec(), numeric_keypad_position);
+            let cheapest_len_1 = moves_1
                 .iter()
-                .map(|moves| { moves.iter().collect::<String>() })
-                .collect::<Vec<_>>()
-                .join("\n")
-        );
-    });
-    42
+                .min_by_key(|seq_1| seq_1.len())
+                .unwrap()
+                .len();
+            let cheapest_moves_1 = moves_1
+                .into_iter()
+                .filter(|seq_1| seq_1.len() == cheapest_len_1)
+                .collect::<Vec<_>>();
+            let moves_2 = cheapest_moves_1
+                .into_iter()
+                .flat_map(|seq_2| compute_moves(seq_2, directional_keypad_position))
+                .collect::<Vec<_>>();
+            let cheapest_len_2 = moves_2
+                .iter()
+                .min_by_key(|seq_2| seq_2.len())
+                .unwrap()
+                .len();
+            let cheapest_moves_2 = moves_2
+                .into_iter()
+                .filter(|seq_2| seq_2.len() == cheapest_len_2)
+                .collect::<Vec<_>>();
+            let moves_3 = cheapest_moves_2
+                .into_iter()
+                .flat_map(|seq_3| compute_moves(seq_3, directional_keypad_position))
+                .collect::<Vec<_>>();
+            let cheapest_move_3 = moves_3.iter().min_by_key(|seq_3| seq_3.len()).unwrap();
+            let numeric_value = seq_1[0..3]
+                .iter()
+                .collect::<String>()
+                .replace("A", "")
+                .parse::<usize>()
+                .unwrap();
+            dbg!(cheapest_move_3.len(), numeric_value);
+            cheapest_move_3.len()
+                * seq_1[0..3]
+                    .iter()
+                    .collect::<String>()
+                    .replace("A", "")
+                    .parse::<usize>()
+                    .unwrap()
+        })
+        .sum()
 }
 
-fn cheapest_moves(sequence: &[char; 4], position_function: fn(char) -> Position) -> Vec<Vec<char>> {
-    let mut moves = vec![vec![]; 4];
+fn compute_moves(sequence: Vec<char>, position_function: fn(char) -> Position) -> Vec<Vec<char>> {
+    let mut moves = vec![vec![]; sequence.len()];
     let a_pos = position_function('A');
     let mut pos = a_pos;
     for (i, c) in sequence.iter().enumerate() {
@@ -42,6 +78,9 @@ fn cheapest_moves(sequence: &[char; 4], position_function: fn(char) -> Position)
         c_moves.extend(vec![if dx1 > 0 { '<' } else { '>' }; dx1.unsigned_abs()]);
         c_moves.extend(vec![if dy1 > 0 { '^' } else { 'v' }; dy1.unsigned_abs()]);
         pos = c_pos;
+        if c_moves.is_empty() {
+            moves[i].push(vec!['A']);
+        }
         permutations(c_moves).into_iter().for_each(|perm| {
             moves[i].push([perm, vec!['A']].concat());
         });
@@ -54,17 +93,28 @@ fn cheapest_moves(sequence: &[char; 4], position_function: fn(char) -> Position)
 
 fn numeric_keypad_position(c: char) -> Position {
     match c {
-        'A' => (2, 3),
-        '0' => (1, 3),
-        '1' => (0, 2),
-        '2' => (1, 2),
-        '3' => (2, 2),
-        '4' => (0, 1),
-        '5' => (1, 1),
-        '6' => (2, 1),
         '7' => (0, 0),
         '8' => (1, 0),
         '9' => (2, 0),
+        '4' => (0, 1),
+        '5' => (1, 1),
+        '6' => (2, 1),
+        '1' => (0, 2),
+        '2' => (1, 2),
+        '3' => (2, 2),
+        '0' => (1, 3),
+        'A' => (2, 3),
+        _ => panic!("Oops"),
+    }
+}
+
+fn directional_keypad_position(c: char) -> Position {
+    match c {
+        '^' => (1, 0),
+        'A' => (2, 0),
+        '<' => (0, 1),
+        'v' => (1, 1),
+        '>' => (2, 1),
         _ => panic!("Oops"),
     }
 }
@@ -103,20 +153,6 @@ fn product(seqs: Vec<Vec<Vec<char>>>) -> Vec<Vec<Vec<char>>> {
                 .collect::<Vec<_>>()
         })
         .collect()
-    // def product(*iterables, repeat=1):
-    //   # product('ABCD', 'xy') → Ax Ay Bx By Cx Cy Dx Dy
-    //   # product(range(2), repeat=3) → 000 001 010 011 100 101 110 111
-
-    //   if repeat < 0:
-    //       raise ValueError('repeat argument cannot be negative')
-    //   pools = [tuple(pool) for pool in iterables] * repeat
-
-    //   result = [[]]
-    //   for pool in pools:
-    //       result = [x+[y] for x in result for y in pool]
-
-    //   for prod in result:
-    //       yield tuple(prod)
 }
 
 // fn part_2(input: &Input) -> usize {
