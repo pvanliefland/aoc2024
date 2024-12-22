@@ -32,7 +32,7 @@ fn part_1(input: &Input) -> isize {
 }
 
 fn part_2(input: &Input) -> usize {
-    let monkeys_prices = input
+    let monkeys_price_changes = input
         .iter()
         .map(|original_secret| {
             let mut secret = *original_secret;
@@ -43,9 +43,6 @@ fn part_2(input: &Input) -> usize {
             }
             prices
         })
-        .collect::<Vec<_>>();
-    let monkeys_price_changes = monkeys_prices
-        .iter()
         .enumerate()
         .map(|(monkey, monkey_prices)| {
             monkey_prices
@@ -54,11 +51,11 @@ fn part_2(input: &Input) -> usize {
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
+    let mut sequence_gains: HashMap<Vec<isize>, (usize, Vec<usize>)> = HashMap::new();
     let sequences = monkeys_price_changes
         .iter()
         .flat_map(|price_changes| price_changes.windows(4))
         .collect::<Vec<_>>();
-    let mut sequence_gains: HashMap<Vec<isize>, (usize, Vec<usize>)> = HashMap::new();
     sequences.iter().for_each(|seq| {
         let key = seq
             .iter()
@@ -72,7 +69,6 @@ fn part_2(input: &Input) -> usize {
                     monkeys.push(seq[0].0);
                 }
             })
-            //.and_modify(|num| *num += seq[seq.len() - 1].0)
             .or_insert((seq[seq.len() - 1].1 as usize, vec![seq[0].0]));
     });
     let max = sequence_gains.iter().max_by_key(|entry| entry.1).unwrap();
