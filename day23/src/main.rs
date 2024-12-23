@@ -6,7 +6,7 @@ use std::{
 const INPUT_TEST: &str = include_str!("../input_test.txt");
 const INPUT: &str = include_str!("../input.txt");
 
-type Input<'n> = Vec<(&'n str, &'n str)>;
+type Input<'n> = HashMap<&'n str, Vec<&'n str>>;
 
 fn main() {
     let start = Instant::now();
@@ -20,70 +20,38 @@ fn main() {
 }
 
 fn part_1(input: &Input) -> usize {
-    let mut network_map: HashMap<&str, Vec<&str>> = HashMap::new();
-    input.iter().for_each(|(n1, n2)| {
-        network_map
-            .entry(n1)
-            .and_modify(|nodes| {
-                nodes.push(*n2);
-            })
-            .or_insert(vec![n2]);
-        network_map
-            .entry(n2)
-            .and_modify(|nodes| {
-                nodes.push(*n1);
-            })
-            .or_insert(vec![n1]);
-    });
-    find_connected_nodes(&network_map, 2).len()
+    find_connected_nodes(input, 2, true).len()
 }
 
 fn part_2(input: &Input) -> String {
-    let mut network_map: HashMap<&str, Vec<&str>> = HashMap::new();
-    input.iter().for_each(|(n1, n2)| {
-        network_map
-            .entry(n1)
-            .and_modify(|nodes| {
-                nodes.push(*n2);
-            })
-            .or_insert(vec![n2]);
-        network_map
-            .entry(n2)
-            .and_modify(|nodes| {
-                nodes.push(*n1);
-            })
-            .or_insert(vec![n1]);
-    });
-    let mut size = 3;
-    let mut largest_connected = None;
-    loop {
-        let connected = find_connected_nodes(&network_map, size);
+    let mut size = input
+        .iter()
+        .map(|(_, connected)| connected.len())
+        .max()
+        .unwrap();
+    let largest_connected = loop {
+        let connected = find_connected_nodes(input, size, false);
         if !connected.is_empty() {
-            largest_connected = Some(connected);
-            size += 1;
-        } else {
-            break;
+            break connected;
         }
-    }
-    dbg!(size);
-    let as_vec = largest_connected
-        .unwrap()
+        size -= 1;
+    };
+    largest_connected
         .into_iter()
-        .map(|yolo| yolo.into_iter().map(String::from).collect::<Vec<_>>())
-        .collect::<Vec<_>>();
-    let mut lan_party = as_vec[0].clone();
-    lan_party.sort();
-    lan_party.join(",")
+        .next()
+        .map(|nodes| nodes.join(","))
+        .unwrap()
 }
 
 fn find_connected_nodes<'n>(
     network_map: &HashMap<&'n str, Vec<&'n str>>,
     size: usize,
+    limit_to_chief: bool,
 ) -> HashSet<Vec<&'n str>> {
     let relevant_sets = network_map
         .iter()
         .filter_map(|(name, nodes)| {
-            if (!name.starts_with('t') && size == 2) || nodes.len() < size {
+            if (limit_to_chief && !name.starts_with('t')) || nodes.len() < size {
                 return None;
             }
             let connected = nodes
@@ -117,7 +85,6 @@ fn find_connected_nodes<'n>(
         })
         .flatten()
         .collect::<HashSet<_>>();
-
     relevant_sets
 }
 
@@ -138,9 +105,24 @@ fn combinations<T: Copy + Clone>(items: &[T], size: usize) -> Vec<Vec<T>> {
 }
 
 fn parse(input: &str) -> Input {
+    let mut network_map: Input = HashMap::new();
     input
         .trim()
         .lines()
         .map(|line| line.split_once('-').unwrap())
-        .collect()
+        .for_each(|(n1, n2)| {
+            network_map
+                .entry(n1)
+                .and_modify(|nodes| {
+                    nodes.push(n2);
+                })
+                .or_insert(vec![n2]);
+            network_map
+                .entry(n2)
+                .and_modify(|nodes| {
+                    nodes.push(n1);
+                })
+                .or_insert(vec![n1]);
+        });
+    network_map
 }
