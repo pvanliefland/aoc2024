@@ -14,8 +14,8 @@ fn main() {
     let input = parse(INPUT);
     println!("Part 1   test          {} ", part_1(&test_input));
     println!("         validation    {} ", part_1(&input));
-    // println!("Part 2   test          {} ", part_2(&test_input));
-    // println!("         validation    {} ", part_2(&input));
+    println!("Part 2   test          {} ", part_2(&test_input));
+    println!("         validation    {} ", part_2(&input));
     println!("Duration: {:?}", start.elapsed());
 }
 
@@ -35,10 +35,55 @@ fn part_1(input: &Input) -> usize {
             })
             .or_insert(vec![n1]);
     });
+    find_connected_nodes(&network_map, 2).len()
+}
+
+fn part_2(input: &Input) -> String {
+    let mut network_map: HashMap<&str, Vec<&str>> = HashMap::new();
+    input.iter().for_each(|(n1, n2)| {
+        network_map
+            .entry(n1)
+            .and_modify(|nodes| {
+                nodes.push(*n2);
+            })
+            .or_insert(vec![n2]);
+        network_map
+            .entry(n2)
+            .and_modify(|nodes| {
+                nodes.push(*n1);
+            })
+            .or_insert(vec![n1]);
+    });
+    let mut size = 3;
+    let mut largest_connected = None;
+    loop {
+        let connected = find_connected_nodes(&network_map, size);
+        if !connected.is_empty() {
+            largest_connected = Some(connected);
+            size += 1;
+        } else {
+            break;
+        }
+    }
+    dbg!(size);
+    let as_vec = largest_connected
+        .unwrap()
+        .into_iter()
+        .map(|yolo| yolo.into_iter().map(String::from).collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+    let mut lan_party = as_vec[0].clone();
+    lan_party.sort();
+    lan_party.join(",")
+}
+
+fn find_connected_nodes<'n>(
+    network_map: &HashMap<&'n str, Vec<&'n str>>,
+    size: usize,
+) -> HashSet<Vec<&'n str>> {
     let relevant_sets = network_map
         .iter()
         .filter_map(|(name, nodes)| {
-            if !name.starts_with('t') || nodes.len() < 2 {
+            if (!name.starts_with('t') && size == 2) || nodes.len() < size {
                 return None;
             }
             let connected = nodes
@@ -46,14 +91,17 @@ fn part_1(input: &Input) -> usize {
                 .filter(|node| network_map.get(*node).unwrap().contains(name))
                 .copied()
                 .collect::<Vec<_>>();
-            if connected.len() < 2 {
+            if connected.len() < size {
                 return None;
             }
-            let combs = combinations(&connected, 2)
+            let combs = combinations(&connected, size)
                 .into_iter()
                 .filter(|comb| {
-                    network_map.get(comb[0]).unwrap().contains(&comb[1])
-                        && network_map.get(comb[1]).unwrap().contains(&comb[0])
+                    comb.iter().all(|n1| {
+                        comb.iter()
+                            .filter(|n2| n2 != &n1)
+                            .all(|n2| network_map.get(n1).unwrap().contains(n2))
+                    })
                 })
                 .collect::<Vec<_>>();
             Some(
@@ -70,11 +118,7 @@ fn part_1(input: &Input) -> usize {
         .flatten()
         .collect::<HashSet<_>>();
 
-    // relevant_sets.iter().for_each(|set| {
-    //     println!("{}", set.join(","));
-    // });
-
-    relevant_sets.len()
+    relevant_sets
 }
 
 fn combinations<T: Copy + Clone>(items: &[T], size: usize) -> Vec<Vec<T>> {
@@ -92,10 +136,6 @@ fn combinations<T: Copy + Clone>(items: &[T], size: usize) -> Vec<Vec<T>> {
         result
     }
 }
-
-// fn part_2(input: &Input) -> usize {
-//     input.trim().parse::<usize>().unwrap()
-// }
 
 fn parse(input: &str) -> Input {
     input
