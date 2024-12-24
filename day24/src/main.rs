@@ -21,6 +21,29 @@ fn main() {
 }
 
 fn part_1(input: &Input) -> usize {
+    compute(input)
+}
+
+fn part_2(input: &Input) -> usize {
+    let (initial_values, _gates) = input;
+    let [x, y] = ["x", "y"]
+        .iter()
+        .map(|prefix| {
+            let mut wires = initial_values
+                .iter()
+                .filter(|(w, _)| w.starts_with(prefix))
+                .collect::<Vec<_>>();
+            wires.sort_by_key(|(w, _)| *w);
+            bits_to_int(&wires.into_iter().map(|(_, v)| *v).collect::<Vec<_>>())
+        })
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    dbg!(x, y);
+    42
+}
+
+fn compute(input: &Input) -> usize {
     let (initial_values, gates) = input;
     let mut bits = [0u8; 64];
     gates
@@ -30,33 +53,7 @@ fn part_1(input: &Input) -> usize {
             bits[gate.3.replace("z", "").parse::<usize>().unwrap()] =
                 compute_gate_value(*gate, gates, initial_values);
         });
-    bits.into_iter()
-        .rev()
-        .fold(0, |acc, bit| (acc << 1) + bit as usize)
-}
-
-fn part_2(input: &Input) -> usize {
-    let (initial_values, _gates) = input;
-    let mut x_wires = initial_values
-        .iter()
-        .filter(|(w, _)| w.starts_with("x"))
-        .collect::<Vec<_>>();
-    x_wires.sort_by_key(|(w, _)| *w);
-    let x = x_wires
-        .into_iter()
-        .rev()
-        .fold(0, |acc, (_, v)| (acc << 1) + *v as usize);
-    let mut y_wires = initial_values
-        .iter()
-        .filter(|(w, _)| w.starts_with("y"))
-        .collect::<Vec<_>>();
-    y_wires.sort_by_key(|(w, _)| *w);
-    let y = y_wires
-        .into_iter()
-        .rev()
-        .fold(0, |acc, (_, v)| (acc << 1) + *v as usize);
-    dbg!(x, y);
-    42
+    bits_to_int(&bits)
 }
 
 fn compute_gate_value(gate: Gate, all_gates: &Vec<Gate>, initial_values: &InitialValues) -> u8 {
@@ -75,6 +72,12 @@ fn compute_gate_value(gate: Gate, all_gates: &Vec<Gate>, initial_values: &Initia
         "XOR" => v1 ^ v2,
         _ => panic!("Oops"),
     }
+}
+
+fn bits_to_int(bits: &[u8]) -> usize {
+    bits.iter()
+        .rev()
+        .fold(0, |acc, bit| (acc << 1) + *bit as usize)
 }
 
 fn parse(input: &str) -> Input {
