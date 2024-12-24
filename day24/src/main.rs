@@ -21,12 +21,12 @@ fn main() {
 }
 
 fn part_1(input: &Input) -> usize {
-    compute(input)
+    bits_to_int(&compute(input))
 }
 
 fn part_2(input: &Input) -> usize {
-    let (initial_values, _gates) = input;
-    let [x, y] = ["x", "y"]
+    let (initial_values, gates) = input;
+    let [x, y]: [usize; 2] = ["x", "y"]
         .iter()
         .map(|prefix| {
             let mut wires = initial_values
@@ -39,11 +39,25 @@ fn part_2(input: &Input) -> usize {
         .collect::<Vec<_>>()
         .try_into()
         .unwrap();
-    dbg!(x, y);
+    let expected_bits = format!("{:#b}", x + y)
+        .chars()
+        .skip(2)
+        .map(|c| c.to_digit(10).unwrap())
+        .collect::<Vec<_>>();
+    let _expected_z_values = expected_bits
+        .iter()
+        .rev()
+        .enumerate()
+        .map(|(i, b)| (format!("z{:0>2}", i), b))
+        .collect::<HashMap<_, _>>();
+    let _bits = compute(input);
+    for (xw, yw, op, ow) in gates.iter().filter(|(xw, _, _, _)| xw.starts_with("x")) {
+        println!("{xw} {op} {yw} -> {ow}");
+    }
     42
 }
 
-fn compute(input: &Input) -> usize {
+fn compute(input: &Input) -> [u8; 64] {
     let (initial_values, gates) = input;
     let mut bits = [0u8; 64];
     gates
@@ -53,7 +67,7 @@ fn compute(input: &Input) -> usize {
             bits[gate.3.replace("z", "").parse::<usize>().unwrap()] =
                 compute_gate_value(*gate, gates, initial_values);
         });
-    bits_to_int(&bits)
+    bits
 }
 
 fn compute_gate_value(gate: Gate, all_gates: &Vec<Gate>, initial_values: &InitialValues) -> u8 {
