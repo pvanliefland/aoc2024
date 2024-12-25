@@ -6,16 +6,64 @@ const INPUT_TEST_2: &str = include_str!("../input_test_2.txt");
 const INPUT_TEST_3: &str = include_str!("../input_test_3.txt");
 const INPUT: &str = include_str!("../input.txt");
 
-type Input = (Map, (isize, isize), Position, Vec<YoloBox>, Vec<Move>);
+type Input = (Map, (isize, isize), Position, Vec<Caisse>, Vec<Move>);
 type Map = HashMap<Position, char>;
 type Position = (isize, isize);
 type Move = (isize, isize);
-struct YoloBox {
-    coords: Vec<Position>,
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Caisse {
+    Single(Position),
+    Double(Position, Position),
 }
-impl YoloBox {
+impl Caisse {
     fn new(coords: Vec<Position>) -> Self {
-        Self { coords }
+        match coords.len() {
+            1 => Self::Single(coords[0]),
+            2 => Self::Double(coords[0], coords[1]),
+            _ => panic!("Nope"),
+        }
+    }
+
+    fn collides_with_pos(&self, other_pos: &Position) -> bool {
+        match self {
+            Self::Single(pos) => pos == other_pos,
+            Self::Double(pos1, pos2) => pos1 == other_pos || pos2 == other_pos,
+        }
+    }
+
+    fn collides_with(&self, other_caisse: &Caisse) -> bool {
+        other_caisse
+            .coords()
+            .iter()
+            .any(|pos| self.collides_with_pos(pos))
+    }
+
+    fn coords(&self) -> Vec<Position> {
+        match self {
+            Self::Single(pos) => vec![*pos],
+            Self::Double(pos1, pos2) => vec![*pos1, *pos2],
+        }
+    }
+
+    fn project(&self, mov: Move) -> Self {
+        match self {
+            Self::Single(pos) => Self::new(vec![(pos.0 + mov.0, pos.1 + mov.1)]),
+            Self::Double(pos1, pos2) => Self::new(vec![
+                (pos1.0 + mov.0, pos1.1 + mov.1),
+                (pos2.0 + mov.1, pos2.1 + mov.1),
+            ]),
+        }
+    }
+
+    fn shift(&mut self, mov: Move) {
+        *self = self.project(mov);
+    }
+
+    fn can_be_pushed_by(&self, other_caisses: &[Caisse], mov: Move) -> bool {
+        other_caisses
+            .iter()
+            .any(|caisse| caisse.project(mov).collides_with(self))
     }
 }
 
@@ -25,25 +73,30 @@ fn main() {
     let test_input_2 = parse(INPUT_TEST_2, false);
     let test_input_3 = parse(INPUT_TEST_3, true);
     let input = parse(INPUT, false);
-    println!("Part 1   test (simple) {} ", move_boxes(&test_input_2));
-    println!("Part 1   test          {} ", move_boxes(&test_input_1));
-    println!("         validation    {} ", move_boxes(&input));
-    println!("Part 2   test          {} ", move_boxes(&test_input_3));
+    println!("Part 1   test (simple) {} ", move_caisses(&test_input_2));
+    println!("Part 1   test          {} ", move_caisses(&test_input_1));
+    println!("         validation    {} ", move_caisses(&input));
+    println!("Part 2   test          {} ", move_caisses(&test_input_3));
     // println!("         validation    {} ", part_2(&input));
     println!("Duration: {:?}", start.elapsed());
 }
 
-fn move_boxes(input: &Input) -> usize {
-    let (map, _size, mut pos, _boxes, moves) = input;
+fn move_caisses(input: &Input) -> usize {
+    let (map, _size, mut pos, caisses, moves) = input;
+    let mut caisses = caisses.clone();
     let mut map = map.clone();
     // print_map(&map, pos, _size);
     for mov in moves {
-        step(&mut map, &mut pos, *mov);
+        step(&mut map, &mut caisses, &mut pos, *mov);
         // print_map(&map, pos, _size);
     }
-    map.iter()
+    map.into_iter()
         .filter_map(|((x, y), c)| {
-            if c == &'O' {
+            if c != '#'
+                && caisses
+                    .iter()
+                    .any(|caisse| caisse.collides_with_pos(&(x, y)))
+            {
                 Some((x + 100 * y) as usize)
             } else {
                 None
@@ -52,70 +105,56 @@ fn move_boxes(input: &Input) -> usize {
         .sum()
 }
 
-fn step(map: &mut Map, pos: &mut Position, mov: Move) {
+fn step(map: &mut Map, caisses: &mut [Caisse], pos: &mut Position, mov: Move) {
     let next_pos = (pos.0 + mov.0, pos.1 + mov.1);
     match map.get(&next_pos).unwrap() {
         '#' => {}
         '.' => {
-            *pos = next_pos;
-        }
-        'O' => {
-            // 1. Find target (next .) on axis
-            let (mut target_pos, mut offset) = (None, 1);
-            loop {
-                let maybe_target_pos = (next_pos.0 + offset * mov.0, next_pos.1 + offset * mov.1);
-                let at_target_pos = map.get(&maybe_target_pos).unwrap();
-                if at_target_pos == &'.' {
-                    target_pos = Some(maybe_target_pos);
-                    break;
-                } else if at_target_pos == &'#' {
-                    break;
-                }
-                offset += 1;
-            }
-
-            // 2. List boxes we are trying to move
-            let mut boxes_to_move = vec![];
-            if let Some(target_pos) = target_pos {
-                let mut offset = 0;
-                let mut at_offset = vec![next_pos];
-                boxes_to_move.extend(at_offset);
+            if let Some(caisse) = caisses
+                .iter()
+                .find(|caisse| caisse.collides_with_pos(&next_pos))
+            {
+                // Maybe this caisse is pushing other caisses
+                let mut pushed_caisses = vec![*caisse];
+                let mut pushing_caisses = vec![*caisse];
                 loop {
-                    offset += 1;
-                    let box_pos = (next_pos.0 + offset * mov.0, next_pos.1 + offset * mov.1);
-                    if box_pos == target_pos {
+                    let next_pushed_caisses = caisses
+                        .iter()
+                        .filter(|caisse| caisse.can_be_pushed_by(&pushing_caisses, mov))
+                        .copied()
+                        .collect::<Vec<_>>();
+                    if next_pushed_caisses.is_empty() {
                         break;
                     }
-                    at_offset = vec![box_pos];
-                    boxes_to_move.extend(at_offset);
+                    pushed_caisses.extend(next_pushed_caisses.clone());
+                    pushing_caisses = next_pushed_caisses;
                 }
-            }
-
-            // 3. Check if all boxes can move
-            let boxes_can_move = !boxes_to_move.is_empty()
-                && boxes_to_move
-                    .iter()
-                    .all(|box_pos| map.get(box_pos).unwrap() != &'#');
-
-            // 4. Move if all boxes can move
-            if boxes_can_move {
-                boxes_to_move.iter().for_each(|box_pos| {
-                    *map.get_mut(box_pos).unwrap() = '.';
+                // Let's see if all those caisses can move
+                let caisses_can_move = !pushing_caisses.iter().any(|caisse| {
+                    caisse
+                        .project(mov)
+                        .coords()
+                        .iter()
+                        .any(|pos| map.get(pos).unwrap() == &'#')
                 });
-                boxes_to_move.iter().for_each(|box_pos| {
-                    *map.get_mut(&(box_pos.0 + mov.0, box_pos.1 + mov.1))
-                        .unwrap() = 'O';
-                });
+                if caisses_can_move {
+                    caisses
+                        .iter_mut()
+                        .filter(|caisse| pushed_caisses.contains(caisse))
+                        .for_each(|caisse| caisse.shift(mov));
+                    *pos = next_pos;
+                }
+            } else {
                 *pos = next_pos;
             }
         }
-        '[' | ']' => {}
         _ => panic!("Oops"),
     }
 }
 
 fn parse(input: &str, double: bool) -> Input {
     let (map_data, moves_data) = input.trim().split_once("\n\n").unwrap();
+    let mut caisses = vec![];
     let mut map: Map = map_data
         .lines()
         .enumerate()
@@ -135,7 +174,24 @@ fn parse(input: &str, double: bool) -> Input {
                     }
                 })
                 .enumerate()
-                .map(|(x, c)| ((x as isize, y as isize), c))
+                .map(|(x, c)| {
+                    let map_c = match c {
+                        '[' => {
+                            caisses.push(Caisse::new(vec![
+                                (x as isize, y as isize),
+                                (x as isize + 1, y as isize),
+                            ]));
+                            '.'
+                        }
+                        ']' => '.',
+                        'O' => {
+                            caisses.push(Caisse::new(vec![(x as isize, y as isize)]));
+                            '.'
+                        }
+                        _ => c,
+                    };
+                    ((x as isize, y as isize), map_c)
+                })
                 .collect::<Vec<_>>()
         })
         .collect();
@@ -149,7 +205,7 @@ fn parse(input: &str, double: bool) -> Input {
         map,
         (map_line_count * if double { 2 } else { 1 }, map_line_count),
         start,
-        vec![],
+        caisses,
         moves_data
             .lines()
             .collect::<String>()
