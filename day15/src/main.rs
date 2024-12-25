@@ -6,10 +6,18 @@ const INPUT_TEST_2: &str = include_str!("../input_test_2.txt");
 const INPUT_TEST_3: &str = include_str!("../input_test_3.txt");
 const INPUT: &str = include_str!("../input.txt");
 
-type Position = (isize, isize);
+type Input = (Map, (isize, isize), Position, Vec<YoloBox>, Vec<Move>);
 type Map = HashMap<Position, char>;
+type Position = (isize, isize);
 type Move = (isize, isize);
-type Input = (Map, Position, (isize, isize), Vec<Move>);
+struct YoloBox {
+    coords: Vec<Position>,
+}
+impl YoloBox {
+    fn new(coords: Vec<Position>) -> Self {
+        Self { coords }
+    }
+}
 
 fn main() {
     let start = Instant::now();
@@ -26,10 +34,11 @@ fn main() {
 }
 
 fn move_boxes(input: &Input) -> usize {
-    let (mut map, mut pos, _size, moves) = input.clone();
+    let (map, _size, mut pos, _boxes, moves) = input;
+    let mut map = map.clone();
     // print_map(&map, pos, _size);
     for mov in moves {
-        step(&mut map, &mut pos, mov);
+        step(&mut map, &mut pos, *mov);
         // print_map(&map, pos, _size);
     }
     map.iter()
@@ -138,8 +147,9 @@ fn parse(input: &str, double: bool) -> Input {
     let map_line_count = map_data.lines().count() as isize;
     (
         map,
-        start,
         (map_line_count * if double { 2 } else { 1 }, map_line_count),
+        start,
+        vec![],
         moves_data
             .lines()
             .collect::<String>()
