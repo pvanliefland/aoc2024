@@ -3,7 +3,6 @@ use std::{collections::HashMap, time::Instant};
 
 const INPUT_TEST_1: &str = include_str!("../input_test_1.txt");
 const INPUT_TEST_2: &str = include_str!("../input_test_2.txt");
-const INPUT_TEST_3: &str = include_str!("../input_test_3.txt");
 const INPUT: &str = include_str!("../input.txt");
 
 type Input = (Map, (isize, isize), Position, Vec<Caisse>, Vec<Move>);
@@ -51,7 +50,7 @@ impl Caisse {
             Self::Single(pos) => Self::new(vec![(pos.0 + mov.0, pos.1 + mov.1)]),
             Self::Double(pos1, pos2) => Self::new(vec![
                 (pos1.0 + mov.0, pos1.1 + mov.1),
-                (pos2.0 + mov.1, pos2.1 + mov.1),
+                (pos2.0 + mov.0, pos2.1 + mov.1),
             ]),
         }
     }
@@ -65,19 +64,48 @@ impl Caisse {
             .iter()
             .any(|caisse| caisse.project(mov).collides_with(self))
     }
+
+    fn render(&self, pos: &Position) -> char {
+        if !self.collides_with_pos(pos) {
+            panic!("Oops");
+        }
+        match self {
+            Self::Single(_) => 'O',
+            Self::Double(pos1, _) => {
+                if pos == pos1 {
+                    '['
+                } else {
+                    ']'
+                }
+            }
+        }
+    }
+
+    fn score(&self) -> usize {
+        (match self {
+            Self::Single((x, y)) => x + 100 * y,
+            Self::Double((x1, y1), (x2, y2)) => {
+                if y1 != y2 {
+                    panic!("Oops");
+                };
+                x1.min(x2) + 100 * y1
+            }
+        }) as usize
+    }
 }
 
 fn main() {
     let start = Instant::now();
     let test_input_1 = parse(INPUT_TEST_1, false);
     let test_input_2 = parse(INPUT_TEST_2, false);
-    let test_input_3 = parse(INPUT_TEST_3, true);
+    let test_input_3 = parse(INPUT_TEST_1, true);
     let input = parse(INPUT, false);
+    let input_2 = parse(INPUT, true);
     println!("Part 1   test (simple) {} ", move_caisses(&test_input_2));
     println!("Part 1   test          {} ", move_caisses(&test_input_1));
     println!("         validation    {} ", move_caisses(&input));
     println!("Part 2   test          {} ", move_caisses(&test_input_3));
-    // println!("         validation    {} ", part_2(&input));
+    println!("         validation    {} ", move_caisses(&input_2));
     println!("Duration: {:?}", start.elapsed());
 }
 
@@ -85,24 +113,24 @@ fn move_caisses(input: &Input) -> usize {
     let (map, _size, mut pos, caisses, moves) = input;
     let mut caisses = caisses.clone();
     let mut map = map.clone();
-    // print_map(&map, pos, _size);
     for mov in moves {
         step(&mut map, &mut caisses, &mut pos, *mov);
-        // print_map(&map, pos, _size);
     }
-    map.into_iter()
-        .filter_map(|((x, y), c)| {
-            if c != '#'
-                && caisses
-                    .iter()
-                    .any(|caisse| caisse.collides_with_pos(&(x, y)))
-            {
-                Some((x + 100 * y) as usize)
-            } else {
-                None
-            }
-        })
-        .sum()
+    // 1360570 is too low, 1384465 is too high, it's not 1373098 :(
+    caisses.into_iter().map(|caisse| caisse.score()).sum()
+    //  map.into_iter()
+    //      .filter_map(|((x, y), c)| {
+    //          if c == '.'
+    //              && caisses
+    //                  .iter()
+    //                  .any(|caisse| caisse.coords().first().unwrap() == &(x, y))
+    //          {
+    //              Some((x + 100 * y) as usize)
+    //          } else {
+    //              None
+    //          }
+    //      })
+    //      .sum()
 }
 
 fn step(map: &mut Map, caisses: &mut [Caisse], pos: &mut Position, mov: Move) {
@@ -120,7 +148,10 @@ fn step(map: &mut Map, caisses: &mut [Caisse], pos: &mut Position, mov: Move) {
                 loop {
                     let next_pushed_caisses = caisses
                         .iter()
-                        .filter(|caisse| caisse.can_be_pushed_by(&pushing_caisses, mov))
+                        .filter(|caisse| {
+                            !pushed_caisses.contains(caisse)
+                                && caisse.can_be_pushed_by(&pushing_caisses, mov)
+                        })
                         .copied()
                         .collect::<Vec<_>>();
                     if next_pushed_caisses.is_empty() {
@@ -223,7 +254,7 @@ fn parse(input: &str, double: bool) -> Input {
 }
 
 #[allow(unused)]
-fn print_map(map: &Map, current_pos: Position, size: (isize, isize)) {
+fn print_map(map: &Map, caisses: &[Caisse], current_pos: Position, size: (isize, isize)) {
     for (pos, c) in map {}
     for y in 0..size.1 {
         for x in 0..size.0 {
@@ -231,11 +262,13 @@ fn print_map(map: &Map, current_pos: Position, size: (isize, isize)) {
                 "{}",
                 if (x, y) == current_pos {
                     '@'
+                } else if let Some(caisse) = caisses
+                    .iter()
+                    .find(|caisse| caisse.collides_with_pos(&(x, y)))
+                {
+                    caisse.render(&(x, y))
                 } else {
-                    *map.get(&(x, y)).unwrap_or_else(|| {
-                        dbg!((x, y));
-                        panic!("OOps");
-                    })
+                    *map.get(&(x, y)).unwrap()
                 }
             );
         }
