@@ -186,7 +186,8 @@ fn step(map: &mut Map, caisses: &mut [Caisse], pos: &mut Position, mov: Move) {
 fn parse(input: &str, double: bool) -> Input {
     let (map_data, moves_data) = input.trim().split_once("\n\n").unwrap();
     let mut caisses = vec![];
-    let mut map: Map = map_data
+    let mut start = None;
+    let map: Map = map_data
         .lines()
         .enumerate()
         .flat_map(|(y, row)| {
@@ -219,6 +220,10 @@ fn parse(input: &str, double: bool) -> Input {
                             caisses.push(Caisse::new(vec![(x as isize, y as isize)]));
                             '.'
                         }
+                        '@' => {
+                            start = Some((x as isize, y as isize));
+                            '.'
+                        }
                         _ => c,
                     };
                     ((x as isize, y as isize), map_c)
@@ -226,16 +231,11 @@ fn parse(input: &str, double: bool) -> Input {
                 .collect::<Vec<_>>()
         })
         .collect();
-    let start = *map
-        .iter()
-        .find_map(|(pos, c)| if c == &'@' { Some(pos) } else { None })
-        .unwrap();
-    *map.get_mut(&start).unwrap() = '.';
     let map_line_count = map_data.lines().count() as isize;
     (
         map,
         (map_line_count * if double { 2 } else { 1 }, map_line_count),
-        start,
+        start.unwrap(),
         caisses,
         moves_data
             .lines()
