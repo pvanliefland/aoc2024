@@ -27,16 +27,34 @@ fn main() {
 
 fn part_1(input: &Input) -> usize {
     let (map, start) = input;
+    let end_moves = escape(map, start, None, Some(1));
+    match end_moves.first().unwrap() {
+        Action::Move(_dir, _pos, cost) => *cost,
+        _ => panic!("Oops"),
+    }
+}
+
+fn escape(
+    map: &Map,
+    start: &Position,
+    max_steps: Option<usize>,
+    max_paths: Option<usize>,
+) -> Vec<Action> {
     let mut queue = VecDeque::from_iter(vec![Action::Move('>', *start, 0)]);
     let mut explored: HashSet<(char, Position)> = HashSet::from_iter(vec![('>', *start)]);
-    let mut end_move = None;
+    let mut end_moves = vec![];
     while let Some(action) = queue.pop_front() {
+        if max_steps.is_some_and(|max| action.steps() == max) {
+            continue;
+        }
         match action {
             Action::Move(dir, pos, cost) => {
                 let at_pos = map.get(&pos).unwrap();
                 if at_pos == &'E' {
-                    end_move = Some(action);
-                    break;
+                    end_moves.push(action);
+                    if max_paths.is_some_and(|max| end_moves.len() == max) {
+                        break;
+                    }
                 }
                 for mov in [(1, 0, '>'), (0, 1, 'v'), (-1, 0, '<'), (0, -1, '^')] {
                     let adj_pos = (pos.0 + mov.0, pos.1 + mov.1);
@@ -60,21 +78,26 @@ fn part_1(input: &Input) -> usize {
             }
         }
     }
-    match end_move {
-        Some(Action::Move(_dir, _pos, cost)) => cost,
-        _ => panic!("Oops"),
-    }
+    end_moves
 }
+
+// fn part_2(input: &Input) -> usize {
+//     input.trim().parse::<usize>().unwrap()
+// }
 
 #[derive(Debug)]
 enum Action {
     Move(char, Position, usize),
     WaitAndMove(usize, char, Position, usize),
 }
-
-// fn part_2(input: &Input) -> usize {
-//     input.trim().parse::<usize>().unwrap()
-// }
+impl Action {
+    fn steps(&self) -> usize {
+        match self {
+            Self::Move(_, _, steps) => *steps,
+            Self::WaitAndMove(_, _, _, steps) => *steps,
+        }
+    }
+}
 
 fn parse(input: &str) -> Input {
     let mut start = None;
