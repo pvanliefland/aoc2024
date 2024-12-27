@@ -10,6 +10,79 @@ type Map = HashMap<Position, char>;
 type Position = (isize, isize);
 type Move = (isize, isize);
 
+fn main() {
+    let start = Instant::now();
+    let test_input_1 = parse(INPUT_TEST_1, false);
+    let test_input_2 = parse(INPUT_TEST_2, false);
+    let test_input_3 = parse(INPUT_TEST_1, true);
+    let input = parse(INPUT, false);
+    let input_2 = parse(INPUT, true);
+    println!("Part 1   test (simple) {} ", move_caisses(&test_input_2));
+    println!("Part 1   test          {} ", move_caisses(&test_input_1));
+    println!("         validation    {} ", move_caisses(&input));
+    println!("Part 2   test          {} ", move_caisses(&test_input_3));
+    println!("         validation    {} ", move_caisses(&input_2));
+    println!("Duration: {:?}", start.elapsed());
+}
+
+fn move_caisses(input: &Input) -> usize {
+    let (map, _size, mut pos, caisses, moves) = input;
+    let mut caisses = caisses.clone();
+    let mut map = map.clone();
+    for mov in moves {
+        step(&mut map, &mut caisses, &mut pos, *mov);
+    }
+    caisses.into_iter().map(|caisse| caisse.score()).sum()
+}
+
+fn step(map: &mut Map, caisses: &mut [Caisse], pos: &mut Position, mov: Move) {
+    let next_pos = (pos.0 + mov.0, pos.1 + mov.1);
+    match map.get(&next_pos).unwrap() {
+        '#' => {}
+        '.' => {
+            if let Some(caisse) = caisses
+                .iter()
+                .find(|caisse| caisse.collides_with_pos(&next_pos))
+            {
+                let mut pushed_caisses = vec![*caisse];
+                let mut pushing_caisses = vec![*caisse];
+                loop {
+                    let next_pushed_caisses = caisses
+                        .iter()
+                        .filter(|caisse| {
+                            !pushed_caisses.contains(caisse)
+                                && caisse.can_be_pushed_by(&pushing_caisses, mov)
+                        })
+                        .copied()
+                        .collect::<Vec<_>>();
+                    if next_pushed_caisses.is_empty() {
+                        break;
+                    }
+                    pushed_caisses.extend(next_pushed_caisses.clone());
+                    pushing_caisses = next_pushed_caisses;
+                }
+                let caisses_can_move = !pushed_caisses.iter().any(|caisse| {
+                    caisse
+                        .project(mov)
+                        .coords()
+                        .iter()
+                        .any(|pos| map.get(pos).unwrap() == &'#')
+                });
+                if caisses_can_move {
+                    caisses
+                        .iter_mut()
+                        .filter(|caisse| pushed_caisses.contains(caisse))
+                        .for_each(|caisse| caisse.shift(mov));
+                    *pos = next_pos;
+                }
+            } else {
+                *pos = next_pos;
+            }
+        }
+        _ => panic!("Oops"),
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Caisse {
     Single(Position),
@@ -91,95 +164,6 @@ impl Caisse {
                 x1.min(x2) + 100 * y1
             }
         }) as usize
-    }
-}
-
-fn main() {
-    let start = Instant::now();
-    let test_input_1 = parse(INPUT_TEST_1, false);
-    let test_input_2 = parse(INPUT_TEST_2, false);
-    let test_input_3 = parse(INPUT_TEST_1, true);
-    let input = parse(INPUT, false);
-    let input_2 = parse(INPUT, true);
-    println!("Part 1   test (simple) {} ", move_caisses(&test_input_2));
-    println!("Part 1   test          {} ", move_caisses(&test_input_1));
-    println!("         validation    {} ", move_caisses(&input));
-    println!("Part 2   test          {} ", move_caisses(&test_input_3));
-    println!("         validation    {} ", move_caisses(&input_2));
-    println!("Duration: {:?}", start.elapsed());
-}
-
-fn move_caisses(input: &Input) -> usize {
-    let (map, _size, mut pos, caisses, moves) = input;
-    let mut caisses = caisses.clone();
-    let mut map = map.clone();
-    for mov in moves {
-        step(&mut map, &mut caisses, &mut pos, *mov);
-    }
-    // 1360570 is too low, 1384465 is too high, it's not 1373098 :(
-    caisses.into_iter().map(|caisse| caisse.score()).sum()
-    //  map.into_iter()
-    //      .filter_map(|((x, y), c)| {
-    //          if c == '.'
-    //              && caisses
-    //                  .iter()
-    //                  .any(|caisse| caisse.coords().first().unwrap() == &(x, y))
-    //          {
-    //              Some((x + 100 * y) as usize)
-    //          } else {
-    //              None
-    //          }
-    //      })
-    //      .sum()
-}
-
-fn step(map: &mut Map, caisses: &mut [Caisse], pos: &mut Position, mov: Move) {
-    let next_pos = (pos.0 + mov.0, pos.1 + mov.1);
-    match map.get(&next_pos).unwrap() {
-        '#' => {}
-        '.' => {
-            if let Some(caisse) = caisses
-                .iter()
-                .find(|caisse| caisse.collides_with_pos(&next_pos))
-            {
-                // Maybe this caisse is pushing other caisses
-                let mut pushed_caisses = vec![*caisse];
-                let mut pushing_caisses = vec![*caisse];
-                loop {
-                    let next_pushed_caisses = caisses
-                        .iter()
-                        .filter(|caisse| {
-                            !pushed_caisses.contains(caisse)
-                                && caisse.can_be_pushed_by(&pushing_caisses, mov)
-                        })
-                        .copied()
-                        .collect::<Vec<_>>();
-                    if next_pushed_caisses.is_empty() {
-                        break;
-                    }
-                    pushed_caisses.extend(next_pushed_caisses.clone());
-                    pushing_caisses = next_pushed_caisses;
-                }
-                // Let's see if all those caisses can move
-                let caisses_can_move = !pushing_caisses.iter().any(|caisse| {
-                    caisse
-                        .project(mov)
-                        .coords()
-                        .iter()
-                        .any(|pos| map.get(pos).unwrap() == &'#')
-                });
-                if caisses_can_move {
-                    caisses
-                        .iter_mut()
-                        .filter(|caisse| pushed_caisses.contains(caisse))
-                        .for_each(|caisse| caisse.shift(mov));
-                    *pos = next_pos;
-                }
-            } else {
-                *pos = next_pos;
-            }
-        }
-        _ => panic!("Oops"),
     }
 }
 
