@@ -1,4 +1,3 @@
-use core::panic;
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     time::Instant,
@@ -17,84 +16,106 @@ fn main() {
     let test_input_1 = parse(INPUT_TEST_1);
     let test_input_2 = parse(INPUT_TEST_2);
     let input = parse(INPUT);
-    println!("Part 1   test 1        {} ", part_1(&test_input_1));
-    println!("Part 1   test 2        {} ", part_1(&test_input_2));
-    println!("         validation    {} ", part_1(&input));
-    // println!("Part 2   test          {} ", part_2(&test_input));
-    // println!("         validation    {} ", part_2(&input));
+    let test_shortest_1 = part_1(&test_input_1);
+    let test_shortest_2 = part_1(&test_input_2);
+    let shortest = part_1(&input);
+    println!("Part 1   test 1        {}", test_shortest_1);
+    println!("Part 1   test 2        {}", test_shortest_2);
+    println!("         validation    {}", shortest);
+    println!(
+        "Part 2   test 1        {}",
+        part_2(&test_input_1, test_shortest_1)
+    );
+    println!(
+        "Part 2   test 2        {}",
+        part_2(&test_input_2, test_shortest_2)
+    );
+    println!("         validation    {} ", part_2(&input, shortest));
     println!("Duration: {:?}", start.elapsed());
 }
 
 fn part_1(input: &Input) -> usize {
     let (map, start) = input;
-    let end_moves = escape(map, start, None, Some(1));
-    match end_moves.first().unwrap() {
-        Action::Move(_dir, _pos, cost) => *cost,
-        _ => panic!("Oops"),
-    }
+    escape(map, start, None, Some(1)).first().unwrap().0
+}
+fn part_2(input: &Input, max_cost: usize) -> usize {
+    let (map, start) = input;
+    escape(map, start, Some(max_cost), None)
+        .iter()
+        .flat_map(|(_, path)| path)
+        .collect::<HashSet<_>>()
+        .len()
 }
 
 fn escape(
     map: &Map,
     start: &Position,
-    max_steps: Option<usize>,
+    max_cost: Option<usize>,
     max_paths: Option<usize>,
-) -> Vec<Action> {
-    let mut queue = VecDeque::from_iter(vec![Action::Move('>', *start, 0)]);
-    let mut explored: HashSet<(char, Position)> = HashSet::from_iter(vec![('>', *start)]);
-    let mut end_moves = vec![];
+) -> Vec<(usize, Vec<Position>)> {
+    let mut queue = VecDeque::from_iter(vec![Action::Move('>', *start, 0, vec![*start])]);
+    let mut explored: HashMap<(char, Position), usize> =
+        HashMap::from_iter(vec![(('>', *start), 0)]);
+    let mut escapes = vec![];
     while let Some(action) = queue.pop_front() {
-        if max_steps.is_some_and(|max| action.steps() == max) {
+        if max_cost.is_some_and(|max| action.cost() > max) {
             continue;
         }
         match action {
-            Action::Move(dir, pos, cost) => {
+            Action::Move(dir, pos, cost, path) => {
                 let at_pos = map.get(&pos).unwrap();
                 if at_pos == &'E' {
-                    end_moves.push(action);
-                    if max_paths.is_some_and(|max| end_moves.len() == max) {
+                    escapes.push((cost, path.clone()));
+                    if max_paths.is_some_and(|max| escapes.len() == max) {
                         break;
                     }
                 }
                 for mov in [(1, 0, '>'), (0, 1, 'v'), (-1, 0, '<'), (0, -1, '^')] {
                     let adj_pos = (pos.0 + mov.0, pos.1 + mov.1);
                     let at_adj_pos = map.get(&adj_pos).unwrap();
-                    if at_adj_pos != &'#' && !explored.contains(&(mov.2, adj_pos)) {
+                    let next_path = [path.clone(), vec![adj_pos]].concat();
+                    if at_adj_pos != &'#'
+                        && explored
+                            .get(&(mov.2, adj_pos))
+                            .is_none_or(|prev_cost| prev_cost >= &cost)
+                    {
                         if dir == mov.2 {
-                            explored.insert((mov.2, adj_pos));
-                            queue.push_back(Action::Move(mov.2, adj_pos, cost + 1));
+                            explored.insert((mov.2, adj_pos), cost);
+                            queue.push_back(Action::Move(mov.2, adj_pos, cost + 1, next_path));
                         } else {
-                            queue.push_back(Action::WaitAndMove(1000, mov.2, adj_pos, cost + 1));
+                            queue.push_back(Action::WaitAndMove(
+                                1000,
+                                mov.2,
+                                adj_pos,
+                                cost + 1,
+                                next_path,
+                            ));
                         }
                     }
                 }
             }
-            Action::WaitAndMove(time, dir, pos, cost) => {
+            Action::WaitAndMove(time, dir, pos, cost, path) => {
                 if time == 0 {
-                    queue.push_back(Action::Move(dir, pos, cost));
+                    queue.push_back(Action::Move(dir, pos, cost, path));
                 } else {
-                    queue.push_back(Action::WaitAndMove(time - 1, dir, pos, cost + 1));
+                    queue.push_back(Action::WaitAndMove(time - 1, dir, pos, cost + 1, path));
                 }
             }
         }
     }
-    end_moves
+    escapes
 }
-
-// fn part_2(input: &Input) -> usize {
-//     input.trim().parse::<usize>().unwrap()
-// }
 
 #[derive(Debug)]
 enum Action {
-    Move(char, Position, usize),
-    WaitAndMove(usize, char, Position, usize),
+    Move(char, Position, usize, Vec<Position>),
+    WaitAndMove(usize, char, Position, usize, Vec<Position>),
 }
 impl Action {
-    fn steps(&self) -> usize {
+    fn cost(&self) -> usize {
         match self {
-            Self::Move(_, _, steps) => *steps,
-            Self::WaitAndMove(_, _, _, steps) => *steps,
+            Self::Move(_, _, cost, _) => *cost,
+            Self::WaitAndMove(_, _, _, cost, _) => *cost,
         }
     }
 }
